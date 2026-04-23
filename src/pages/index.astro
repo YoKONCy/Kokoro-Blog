@@ -1,0 +1,130 @@
+---
+/**
+ * 首页
+ * 样式已提取到 src/styles/home.css
+ */
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { t } from '@/lib/i18n';
+import { SITE } from '@/lib/seo';
+import { formatDate } from '@/lib/date';
+import { getReadingTime } from '@/lib/utils';
+
+// 获取最新文章（非草稿，按日期倒序）
+const posts = (await getCollection('blog', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 6);
+---
+
+<BaseLayout title="" description={SITE.description}>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <div class="hero-badge animate-slide-up">✨ 欢迎来到</div>
+      <h1 class="hero-title animate-slide-up" style="animation-delay: 80ms">
+        <span class="gradient-text">{SITE.title}</span>
+      </h1>
+      <p class="hero-desc animate-slide-up" id="hero-slogan" style="animation-delay: 160ms">
+        {SITE.description}
+      </p>
+      <div class="hero-actions animate-slide-up" style="animation-delay: 240ms">
+        <a href="/blog" class="btn btn-primary">{t('nav.blog')}</a>
+        <a href="/about" class="btn btn-ghost">{t('nav.about')}</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 最新文章 -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-title">
+        <span class="section-icon">📝</span>
+        {t('blog.latestPosts')}
+      </h2>
+
+      {posts.length > 0 ? (
+        <div class="posts-grid stagger">
+          {posts.map(post => (
+            <a href={`/blog/${post.id}`} class="post-card glow-card">
+              {post.data.heroImage && (
+                <div class="post-card-image">
+                  <img src={post.data.heroImage} alt={post.data.title} loading="lazy" />
+                </div>
+              )}
+              <div class="post-card-body">
+                <div class="post-card-meta">
+                  <time datetime={post.data.pubDate.toISOString()}>
+                    {formatDate(post.data.pubDate)}
+                  </time>
+                  <span>·</span>
+                  <span>{getReadingTime(post.body ?? '')} {t('blog.readingTime')}</span>
+                </div>
+                <h3 class="post-card-title">{post.data.title}</h3>
+                <p class="post-card-desc">{post.data.description}</p>
+                <div class="post-card-tags">
+                  {post.data.tags.slice(0, 3).map(tag => (
+                    <span class="tag">{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p class="no-posts">{t('blog.noPosts')}</p>
+      )}
+
+      {posts.length > 0 && (
+        <div class="section-action">
+          <a href="/blog" class="btn btn-ghost">
+            {t('blog.allPosts')} →
+          </a>
+        </div>
+      )}
+    </div>
+  </section>
+</BaseLayout>
+
+<script is:inline>
+  // 打字机特效
+  document.addEventListener('astro:page-load', () => {
+    const el = document.getElementById('hero-slogan');
+    if (!el || el.dataset.typed) return;
+    el.dataset.typed = 'true';
+    
+    const text = el.textContent.trim();
+    el.textContent = '';
+    el.style.borderRight = '2px solid var(--color-primary)';
+    el.style.paddingRight = '4px';
+    el.style.display = 'inline-block';
+    
+    // 注入闪烁光标动画
+    if (!document.getElementById('typewriter-styles')) {
+      const style = document.createElement('style');
+      style.id = 'typewriter-styles';
+      style.textContent = `
+        @keyframes blink-cursor {
+          0%, 100% { border-color: transparent; }
+          50% { border-color: var(--color-primary); }
+        }
+        #hero-slogan { animation: blink-cursor 0.75s step-end infinite; }
+        #hero-slogan.typewriter-done { border-color: transparent !important; animation: none !important; }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    let i = 0;
+    function typeWriter() {
+      if (i < text.length) {
+        el.textContent += text.charAt(i);
+        i++;
+        setTimeout(typeWriter, 60); // 打字速度
+      } else {
+        setTimeout(() => el.classList.add('typewriter-done'), 2000); // 结束后光标再闪烁2秒然后消失
+      }
+    }
+    
+    setTimeout(typeWriter, 400); // 等待入场动画基本完成再开始打字
+  });
+</script>

@@ -1,0 +1,91 @@
+---
+/**
+ * 纯前端 SVG 动画挂件：赛博幽灵 / 探头小宠
+ * 足够小（0 KB 外部资源），会动（CSS 关键帧），Q版
+ */
+---
+<button id="back-to-top" class="cyber-pet" aria-label="回到顶部">
+  <div class="pet-container">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-svg">
+      <defs>
+        <filter id="pet-glow">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      
+      <!-- 身体 -->
+      <path class="pet-body" d="M 20 100 Q 20 30 50 30 Q 80 30 80 100 Z" />
+      
+      <!-- 耳朵/触角 -->
+      <path class="pet-ear left" d="M 30 40 L 15 15 L 45 30 Z" />
+      <path class="pet-ear right" d="M 70 40 L 85 15 L 55 30 Z" />
+      
+      <!-- 眼睛 (默认圆眼) -->
+      <g class="eyes-normal">
+        <ellipse cx="40" cy="55" rx="5" ry="8" class="eye" />
+        <ellipse cx="60" cy="55" rx="5" ry="8" class="eye" />
+      </g>
+      
+      <!-- 眼睛 (悬停笑眼) -->
+      <g class="eyes-happy">
+        <path d="M 35 55 Q 40 48 45 55" class="eye-curve" />
+        <path d="M 55 55 Q 60 48 65 55" class="eye-curve" />
+      </g>
+      
+      <!-- 嘴巴 -->
+      <path class="mouth" d="M 45 65 Q 50 70 55 65" />
+      
+      <!-- 脸颊红晕 -->
+      <ellipse cx="30" cy="65" rx="4" ry="2" class="blush" />
+      <ellipse cx="70" cy="65" rx="4" ry="2" class="blush" />
+    </svg>
+    <div class="beam-light"></div>
+  </div>
+</button>
+
+<!-- 样式已提取到 src/styles/global.css -->
+
+<script is:inline>
+  (function() {
+    // 清理旧监听器（View Transitions 后 DOM 会被替换）
+    if (window._petScrollHandler) {
+      window.removeEventListener('scroll', window._petScrollHandler);
+    }
+
+    function initPet() {
+      var pet = document.getElementById('back-to-top');
+      if (!pet) return;
+
+      // 滚动监听：超过 100px 就显示（兼容内容较少的页面）
+      window._petScrollHandler = function() {
+        if (window.scrollY > 100) {
+          pet.classList.add('visible');
+        } else {
+          pet.classList.remove('visible');
+        }
+      };
+
+      window.addEventListener('scroll', window._petScrollHandler, { passive: true });
+      window._petScrollHandler(); // 立刻检查一次
+
+      // 防止重复绑定点击事件
+      if (!pet._clickBound) {
+        pet._clickBound = true;
+        pet.addEventListener('click', function() {
+          pet.classList.add('launching');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setTimeout(function() {
+            pet.classList.remove('launching');
+            pet.classList.remove('visible');
+          }, 800);
+        });
+      }
+    }
+
+    document.addEventListener('astro:page-load', initPet);
+  })();
+</script>

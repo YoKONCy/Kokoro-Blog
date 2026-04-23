@@ -1,0 +1,121 @@
+---
+/**
+ * 文章详情页 — /blog/2026/post-slug
+ * 使用 [...slug] rest 参数匹配年份+slug
+ * 样式已提取到 src/styles/post.css
+ */
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import JsonLd from '@/components/seo/JsonLd.astro';
+import CommentSection from '@/components/blog/CommentSection.svelte';
+import { t } from '@/lib/i18n';
+import { formatDate } from '@/lib/date';
+import { getReadingTime } from '@/lib/utils';
+import { generateArticleSchema } from '@/lib/seo';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map(post => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const readingTime = getReadingTime(post.body ?? '');
+
+// 获取上一篇/下一篇
+const allPosts = (await getCollection('blog', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+const currentIndex = allPosts.findIndex(p => p.id === post.id);
+const prevPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null;
+const nextPost = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
+
+const articleSchema = generateArticleSchema({
+  title: post.data.title,
+  description: post.data.description,
+  pubDate: post.data.pubDate,
+  updatedDate: post.data.updatedDate,
+  heroImage: post.data.heroImage,
+  tags: post.data.tags,
+});
+---
+
+<BaseLayout
+  title={post.data.title}
+  description={post.data.description}
+  article={{
+    publishedTime: post.data.pubDate.toISOString(),
+    modifiedTime: post.data.updatedDate?.toISOString(),
+    tags: post.data.tags,
+  }}
+>
+  <JsonLd data={articleSchema} />
+
+  <article class="post-page">
+    <!-- 文章头部 -->
+    <header class="post-header">
+      <div class="post-meta-top">
+        <time datetime={post.data.pubDate.toISOString()}>
+          {formatDate(post.data.pubDate)}
+        </time>
+        <span class="meta-sep">·</span>
+        <span>{readingTime} {t('blog.readingTime')}</span>
+        {post.data.category && (
+          <>
+            <span class="meta-sep">·</span>
+            <span class="post-category">{post.data.category}</span>
+          </>
+        )}
+      </div>
+
+      <h1 class="post-title">{post.data.title}</h1>
+      <p class="post-description">{post.data.description}</p>
+
+      <div class="post-tags">
+        {post.data.tags.map(tag => (
+          <a href={`/blog/tag/${tag}`} class="post-tag">{tag}</a>
+        ))}
+      </div>
+    </header>
+
+    <!-- 题图 -->
+    {post.data.heroImage && (
+      <div class="post-hero">
+        <img src={post.data.heroImage} alt={post.data.title} loading="eager" />
+      </div>
+    )}
+
+    <!-- 文章正文 -->
+    <div class="post-content prose">
+      <Content />
+    </div>
+
+    <!-- 更新时间 -->
+    {post.data.updatedDate && (
+      <div class="post-updated">
+        {t('blog.updatedAt')} {formatDate(post.data.updatedDate)}
+      </div>
+    )}
+
+    <!-- 上一篇/下一篇 -->
+    <nav class="post-nav">
+      {prevPost ? (
+        <a href={`/blog/${prevPost.id}`} class="post-nav-link prev">
+          <span class="post-nav-label">← {t('blog.prevPost')}</span>
+          <span class="post-nav-title">{prevPost.data.title}</span>
+        </a>
+      ) : <div />}
+      {nextPost ? (
+        <a href={`/blog/${nextPost.id}`} class="post-nav-link next">
+          <span class="post-nav-label">{t('blog.nextPost')} →</span>
+          <span class="post-nav-title">{nextPost.data.title}</span>
+        </a>
+      ) : <div />}
+    </nav>
+
+    <!-- 评论区 -->
+    <CommentSection postSlug={post.id} client:visible />
+  </article>
+</BaseLayout>

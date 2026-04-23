@@ -1,0 +1,102 @@
+---
+/**
+ * ToastContainer — 全局非模态通知气泡
+ * 提供 window.showToast(message, type?) 全局 API
+ * 样式位于 src/styles/toast.css，与全局 Glassmorphism 2.0 风格严格对齐
+ */
+---
+
+<div class="toast-container" id="toast-container" transition:persist></div>
+
+<script>
+  interface ToastOptions {
+    type?: 'success' | 'error' | 'warning' | 'info';
+    duration?: number;
+  }
+
+  function initToast() {
+    const win = window as any;
+    if (win._toastInited) return;
+    win._toastInited = true;
+
+    win.showToast = (message: string, options?: ToastOptions) => {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const type = options?.type || 'info';
+      const duration = options?.duration || 3000;
+
+      // 极简标签，替代花哨的颜文字/日文
+      const titles: Record<string, string> = {
+        success: 'SUCCESS',
+        error: 'ERROR',
+        warning: 'WARNING',
+        info: 'INFO',
+      };
+
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      
+      // 与主页面高度统一的极简毛玻璃卡片结构
+      // 左侧发光彩带和右上角 ✦ 水印由 CSS ::before 和 ::after 提供
+      toast.innerHTML = `
+        <div class="toast-content">
+          <span class="toast-title">${titles[type]}</span>
+          <span class="toast-message">${message}</span>
+        </div>
+        <button class="toast-close" aria-label="关闭">×</button>
+        <div class="toast-progress" style="animation-duration: ${duration}ms;"></div>
+      `;
+
+      let isPaused = false;
+      let remaining = duration;
+      let startTime = Date.now();
+      let timerId: any;
+
+      // 关闭逻辑
+      const closeToast = () => {
+        if (toast.classList.contains('toast-exit')) return;
+        toast.classList.add('toast-exit');
+        toast.addEventListener('animationend', () => toast.remove());
+      };
+
+      toast.querySelector('.toast-close')?.addEventListener('click', closeToast);
+
+      // 入场
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => toast.classList.add('toast-enter'));
+      });
+
+      // 倒计时控制
+      const startTimer = () => {
+        timerId = setTimeout(closeToast, remaining);
+      };
+
+      startTimer();
+
+      // 鼠标悬停暂停动画和计时器
+      toast.addEventListener('mouseenter', () => {
+        isPaused = true;
+        clearTimeout(timerId);
+        remaining -= Date.now() - startTime;
+        const progress = toast.querySelector('.toast-progress') as HTMLElement;
+        if (progress) {
+          progress.style.animationPlayState = 'paused';
+        }
+      });
+
+      toast.addEventListener('mouseleave', () => {
+        isPaused = false;
+        startTime = Date.now();
+        startTimer();
+        const progress = toast.querySelector('.toast-progress') as HTMLElement;
+        if (progress) {
+          progress.style.animationPlayState = 'running';
+        }
+      });
+    };
+  }
+
+  document.addEventListener('astro:page-load', initToast);
+</script>

@@ -1,0 +1,162 @@
+---
+/**
+ * Header — 网站顶部导航栏
+ * 毛玻璃效果 + 滚动时阴影
+ */
+import { t } from '@/lib/i18n';
+import ThemeToggle from '@/components/ui/ThemeToggle.svelte';
+
+const navLinks = [
+  { href: '/', label: t('nav.home') },
+  { href: '/blog', label: t('nav.blog') },
+  { href: '/about', label: t('nav.about') },
+  { href: '/links', label: t('nav.links') },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="header" id="main-header" transition:persist>
+  <nav class="header-inner">
+    <!-- Logo -->
+    <a href="/" class="logo" aria-label={t('site.title')}>
+      <span class="logo-icon">✦</span>
+      <span class="logo-text">{t('site.title')}</span>
+    </a>
+
+    <!-- 导航链接 -->
+    <ul class="nav-links">
+      {navLinks.map(link => (
+        <li>
+          <a
+            href={link.href}
+            class:list={['nav-link', { active: currentPath === link.href || (link.href !== '/' && currentPath.startsWith(link.href)) }]}
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <!-- 右侧操作区 -->
+    <div class="header-actions">
+      <a href="/search" class="search-btn" aria-label={t('nav.search')}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </a>
+      <ThemeToggle client:load />
+      <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="12" x2="20" y2="12"></line>
+          <line x1="4" y1="6" x2="20" y2="6"></line>
+          <line x1="4" y1="18" x2="20" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </nav>
+</header>
+
+<!-- 移动端抽屉 (Mobile Drawer) — 必须在 header 外面，否则 transform 会破坏 position:fixed -->
+<div class="mobile-drawer-overlay" id="mobile-drawer-overlay"></div>
+<div class="mobile-drawer" id="mobile-drawer">
+  <div class="drawer-header">
+    <span class="logo-text">{t('site.title')}</span>
+    <button class="drawer-close-btn" id="drawer-close-btn" aria-label="Close">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+  <ul class="drawer-nav-links">
+    {navLinks.map(link => (
+      <li>
+        <a
+          href={link.href}
+          class:list={['drawer-nav-link', { active: currentPath === link.href || (link.href !== '/' && currentPath.startsWith(link.href)) }]}
+        >
+          {link.label}
+        </a>
+      </li>
+    ))}
+  </ul>
+</div>
+
+
+
+<script is:inline>
+  (function() {
+    // 清理旧的滚动监听器（View Transitions DOM swap 后需重新绑定）
+    if (window._headerScrollHandler) {
+      window.removeEventListener('scroll', window._headerScrollHandler);
+    }
+
+    function initHeader() {
+      var header = document.getElementById('main-header');
+      if (!header) return;
+
+      var lastScrollY = window.scrollY;
+      var ticking = false;
+      var isHidden = false;
+      var DELTA = 5;
+
+      // 滚动监听器 — 挂在 window 上方便下次清理
+      window._headerScrollHandler = function () {
+        if (!ticking) {
+          window.requestAnimationFrame(function () {
+            var currentScrollY = window.scrollY;
+            var delta = currentScrollY - lastScrollY;
+
+            header.classList.toggle('scrolled', currentScrollY > 10);
+
+            if (delta > DELTA && currentScrollY > 80 && !isHidden) {
+              header.classList.add('is-hidden');
+              isHidden = true;
+            } else if (delta < -DELTA && isHidden) {
+              header.classList.remove('is-hidden');
+              isHidden = false;
+            }
+
+            lastScrollY = currentScrollY;
+            ticking = false;
+          });
+          ticking = true;
+        }
+      };
+
+      window.addEventListener('scroll', window._headerScrollHandler, { passive: true });
+
+      // --- 移动端抽屉逻辑 ---
+      var menuBtn = document.getElementById('mobile-menu-btn');
+      var closeBtn = document.getElementById('drawer-close-btn');
+      var overlay = document.getElementById('mobile-drawer-overlay');
+      var drawer = document.getElementById('mobile-drawer');
+
+      function openDrawer() {
+        if (overlay) overlay.classList.add('open');
+        if (drawer) drawer.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeDrawer() {
+        if (overlay) overlay.classList.remove('open');
+        if (drawer) drawer.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+
+      if (menuBtn) menuBtn.addEventListener('click', openDrawer);
+      if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+      if (overlay) overlay.addEventListener('click', closeDrawer);
+
+      // 点击抽屉内的导航链接后自动关闭
+      var drawerLinks = document.querySelectorAll('.drawer-nav-link');
+      drawerLinks.forEach(function(link) {
+        link.addEventListener('click', closeDrawer);
+      });
+    }
+
+    document.addEventListener('astro:page-load', initHeader);
+  })();
+</script>

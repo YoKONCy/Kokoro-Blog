@@ -1,0 +1,90 @@
+---
+/**
+ * 搜索页 — /search (SSR)
+ * 样式已提取到 src/styles/search.css
+ */
+export const prerender = false;
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { t } from '@/lib/i18n';
+import { searchPosts, type SearchResult } from '@/lib/cloudflare/search';
+
+const query = Astro.url.searchParams.get('q')?.trim() || '';
+let results: SearchResult[] = [];
+let searchError = '';
+
+if (query) {
+  try {
+    const db = Astro.locals.runtime.env.DB;
+    results = await searchPosts(db, query);
+  } catch {
+    searchError = '搜索服务暂不可用（D1 未绑定）';
+  }
+}
+---
+
+<BaseLayout title={query ? `搜索: ${query}` : t('nav.search')} description="站内搜索">
+  <div class="search-page">
+    <h1 class="search-title gradient-text">{t('nav.search')}</h1>
+
+    <!-- 搜索框 -->
+    <form method="get" action="/search" class="search-form">
+      <div class="search-input-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="text"
+          name="q"
+          value={query}
+          placeholder="搜索文章标题、内容、标签..."
+          class="search-input"
+          autofocus
+          autocomplete="off"
+        />
+        {query && (
+          <a href="/search" class="search-clear" aria-label="清除">✕</a>
+        )}
+      </div>
+    </form>
+
+    <!-- 搜索结果 -->
+    {searchError ? (
+      <div class="search-notice">
+        <p>⚠️ {searchError}</p>
+        <p class="search-hint">本地开发环境中搜索不可用，部署到 Cloudflare 后将正常工作。</p>
+      </div>
+    ) : query ? (
+      <div class="search-results">
+        <p class="results-count">
+          找到 <strong>{results.length}</strong> 条结果
+        </p>
+        {results.length > 0 ? (
+          <div class="results-list">
+            {results.map(result => (
+              <a href={`/blog/${result.slug}`} class="result-item glow-card">
+                <h3 class="result-title" set:html={result.title} />
+                <p class="result-excerpt" set:html={result.excerpt} />
+                <div class="result-meta">
+                  <time>{result.pub_date}</time>
+                </div>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div class="search-empty">
+            <p class="empty-icon">🔍</p>
+            <p>没有找到与「{query}」相关的内容</p>
+            <p class="empty-hint">试试其他关键词？</p>
+          </div>
+        )}
+      </div>
+    ) : (
+      <div class="search-idle">
+        <p class="idle-icon">✨</p>
+        <p>输入关键词开始搜索</p>
+      </div>
+    )}
+  </div>
+</BaseLayout>

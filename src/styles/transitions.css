@@ -1,0 +1,103 @@
+/* ===================================
+   View Transitions + 特效动画
+   =================================== */
+
+/* 页面切换淡入淡出 */
+::view-transition-old(root) {
+  animation: fade-out 0.2s ease-out forwards;
+}
+::view-transition-new(root) {
+  animation: fade-in 0.3s ease-in forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+
+/* ===================================
+   顶部加载进度条 (NProgress)
+   由 LoadingBar.astro 提供
+   =================================== */
+
+.nprogress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--color-primary);
+  box-shadow: 0 0 10px var(--color-primary), 0 0 5px var(--color-primary);
+  z-index: 99999;
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nprogress-bar.loading {
+  opacity: 1;
+}
+
+.nprogress-bar.done {
+  opacity: 0;
+  transition: width 0.2s ease, opacity 0.4s ease;
+}
+
+/* 卡片入场动画 */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s var(--ease-spring) both;
+}
+
+/* 弹跳动画（用于 hover） */
+@keyframes bounce-in {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.animate-bounce-in:hover {
+  animation: bounce-in 0.4s var(--ease-bounce);
+}
+
+/* 浮动动画（用于装饰元素） */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* 发光脉冲 */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 16px oklch(0.65 0.18 280 / 0.15); }
+  50%      { box-shadow: 0 0 28px oklch(0.65 0.18 280 / 0.3); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* 交错入场延迟 */
+.stagger > * {
+  animation: slide-up 0.5s var(--ease-spring) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 60ms; }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(6) { animation-delay: 300ms; }
+.stagger > *:nth-child(7) { animation-delay: 360ms; }
+.stagger > *:nth-child(8) { animation-delay: 420ms; }

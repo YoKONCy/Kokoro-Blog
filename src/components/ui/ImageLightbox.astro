@@ -1,0 +1,60 @@
+---
+/**
+ * ImageLightbox — 图片灯箱
+ * 点击 .prose 内的图片时，平滑放大至全屏预览
+ * 样式位于 src/styles/prose.css
+ */
+---
+
+<div class="lightbox-overlay" id="lightbox-overlay" transition:persist>
+  <img id="lightbox-img" src="" alt="" />
+</div>
+
+<script>
+  function initLightbox() {
+    const overlay = document.getElementById('lightbox-overlay');
+    const lightboxImg = document.getElementById('lightbox-img') as HTMLImageElement;
+    if (!overlay || !lightboxImg) return;
+
+    const win = window as any;
+    if (win._lightboxInited) {
+      bindImageClicks();
+      return;
+    }
+    win._lightboxInited = true;
+
+    // 点击蒙版关闭
+    overlay.addEventListener('click', () => {
+      overlay.classList.remove('active');
+    });
+
+    // Escape 关闭
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlay.classList.contains('active')) {
+        overlay.classList.remove('active');
+      }
+    });
+
+    bindImageClicks();
+  }
+
+  function bindImageClicks() {
+    // 为 .prose 内所有图片绑定点击放大
+    document.querySelectorAll('.prose img').forEach(img => {
+      if ((img as any)._lightbox) return;
+      (img as any)._lightbox = true;
+
+      img.addEventListener('click', () => {
+        const overlay = document.getElementById('lightbox-overlay');
+        const lightboxImg = document.getElementById('lightbox-img') as HTMLImageElement;
+        if (!overlay || !lightboxImg) return;
+
+        lightboxImg.src = (img as HTMLImageElement).src;
+        lightboxImg.alt = (img as HTMLImageElement).alt;
+        overlay.classList.add('active');
+      });
+    });
+  }
+
+  document.addEventListener('astro:page-load', initLightbox);
+</script>

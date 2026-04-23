@@ -1,0 +1,122 @@
+---
+/**
+ * 代码块增强器
+ * 在客户端为 Markdown 代码块注入：
+ * 1. 语言标签
+ * 2. 一键复制按钮
+ * 样式已提取到 src/styles/prose.css
+ */
+---
+
+<script>
+  function enhanceCodeBlocks() {
+    const blocks = document.querySelectorAll('pre');
+    
+    blocks.forEach((block) => {
+      // 防止在 View Transitions 期间重复绑定
+      if ((block as any)._enhanced) return;
+      (block as any)._enhanced = true;
+
+      // 创建右上角的容器
+      const header = document.createElement('div');
+      header.className = 'code-header-actions';
+      
+      // 解析代码语言
+      let lang = '';
+      if (block.hasAttribute('data-language')) {
+        lang = block.getAttribute('data-language') || '';
+      } else {
+        const codeElement = block.querySelector('code');
+        if (codeElement) {
+          const match = codeElement.className.match(/language-(\w+)/);
+          if (match) lang = match[1];
+        }
+      }
+
+      // 如果成功提取到语言，则显示标签
+      if (lang) {
+        const langSpan = document.createElement('span');
+        langSpan.className = 'code-lang';
+        langSpan.textContent = lang.toUpperCase();
+        header.appendChild(langSpan);
+      }
+
+      // 创建复制按钮
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'code-copy-btn';
+      copyBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      `;
+      copyBtn.setAttribute('aria-label', '复制代码');
+
+      // 复制功能逻辑
+      copyBtn.addEventListener('click', async () => {
+        try {
+          const code = block.querySelector('code')?.innerText || '';
+          await navigator.clipboard.writeText(code);
+          
+          copyBtn.innerHTML = '复制成功 (๑•̀ㅂ•́)و✧';
+          copyBtn.classList.add('success');
+          
+          setTimeout(() => {
+            copyBtn.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            `;
+            copyBtn.classList.remove('success');
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy text: ', err);
+          copyBtn.innerHTML = '复制失败 ╥﹏╥';
+        }
+      });
+
+      header.appendChild(copyBtn);
+      block.appendChild(header);
+
+      // --- 拖拽滚动支持 (Drag to Scroll) ---
+      let isDown = false;
+      let startX = 0;
+      let scrollLeft = 0;
+
+      block.addEventListener('mousedown', (e: MouseEvent) => {
+        // 防止点击在复制按钮等顶部操作栏时触发拖拽
+        if ((e.target as HTMLElement).closest('.code-header-actions')) return;
+        
+        isDown = true;
+        block.style.cursor = 'grabbing';
+        block.style.userSelect = 'none'; // 拖拽时防止选中文本
+        startX = e.pageX - block.offsetLeft;
+        scrollLeft = block.scrollLeft;
+      });
+
+      block.addEventListener('mouseleave', () => {
+        isDown = false;
+        block.style.cursor = '';
+        block.style.userSelect = '';
+      });
+
+      block.addEventListener('mouseup', () => {
+        isDown = false;
+        block.style.cursor = '';
+        block.style.userSelect = '';
+      });
+
+      block.addEventListener('mousemove', (e: MouseEvent) => {
+        if (!isDown) return;
+        e.preventDefault(); // 阻止默认的文本拖拽/高亮行为
+        const x = e.pageX - block.offsetLeft;
+        const walk = (x - startX) * 1.5; // 1.5倍拖拽灵敏度
+        block.scrollLeft = scrollLeft - walk;
+      });
+    });
+  }
+
+  // 支持 Astro View Transitions
+  document.addEventListener('astro:page-load', enhanceCodeBlocks);
+</script>

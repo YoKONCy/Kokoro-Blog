@@ -1,0 +1,63 @@
+---
+/**
+ * CustomCursor — 自定义鼠标指针
+ * 内点零延迟跟随，外圈高跟手弹性缓冲
+ * 样式位于 src/styles/cursor.css（workerd 兼容性）
+ */
+---
+
+<div class="cursor-dot" id="cursor-dot" transition:persist></div>
+<div class="cursor-outline" id="cursor-outline" transition:persist></div>
+
+<script>
+  function initCursor() {
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+
+    const dot = document.getElementById('cursor-dot');
+    const outline = document.getElementById('cursor-outline');
+    if (!dot || !outline) return;
+
+    const win = window as any;
+
+    if (win._cursorInited) {
+      bindHoverEvents();
+      return;
+    }
+    win._cursorInited = true;
+
+    let mx = -100;
+    let my = -100;
+    let ox = -100;
+    let oy = -100;
+
+    // 内点：mousemove 同步更新，不加 passive 确保零延迟
+    window.addEventListener('mousemove', (e) => {
+      mx = e.clientX;
+      my = e.clientY;
+      dot.style.transform = `translate3d(${mx - 4}px, ${my - 4}px, 0)`;
+    });
+
+    // 外圈：rAF + 高跟手系数 0.3（越大越跟手，1 = 完全同步）
+    const loop = () => {
+      ox += (mx - ox) * 0.3;
+      oy += (my - oy) * 0.3;
+      outline.style.transform = `translate3d(${ox - 16}px, ${oy - 16}px, 0)`;
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+
+    bindHoverEvents();
+  }
+
+  function bindHoverEvents() {
+    const sel = 'a, button, input, textarea, select, [role="button"], .cursor-pointer';
+    document.querySelectorAll(sel).forEach(el => {
+      if ((el as any)._ce) return;
+      el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
+      el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+      (el as any)._ce = true;
+    });
+  }
+
+  document.addEventListener('astro:page-load', initCursor);
+</script>

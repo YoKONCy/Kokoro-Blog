@@ -1,0 +1,169 @@
+/* ===================================
+   Blog 列表/标签页 — 共享样式
+   提取自 blog/index.astro 和 blog/tag/[tag].astro
+   =================================== */
+
+.blog-page {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.blog-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.page-desc {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.back-link {
+  display: inline-block;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  transition: color 150ms;
+}
+.back-link:hover {
+  color: var(--color-primary);
+}
+
+.tag-icon {
+  color: var(--color-accent);
+  font-weight: 400;
+}
+
+/* ── 标签筛选 ── */
+.tag-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tag-pill {
+  padding: 0.35rem 0.875rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tag-pill:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary-light);
+  background: oklch(0.65 0.18 280 / 0.06);
+}
+.tag-pill.active {
+  color: white;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* ── 文章列表 ── */
+.post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.post-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  padding: 1.5rem;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--color-border);
+}
+
+.post-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.post-item-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+  color: var(--color-text);
+  transition: color 150ms;
+}
+.post-item:hover .post-item-title {
+  color: var(--color-primary);
+}
+
+.post-item-desc {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.post-item-tags {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.tag-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: oklch(0.65 0.18 280 / 0.08);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.tag-badge-active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.post-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 0.25rem;
+}
+
+.meta-dot {
+  opacity: 0.4;
+}
+
+@media (max-width: 640px) {
+  .post-item {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .page-title {
+    font-size: 2rem;
+  }
+}

@@ -1,0 +1,58 @@
+---
+/**
+ * BaseLayout — 根布局
+ * 所有页面继承此布局
+ * 所有页面级样式已提取到 src/styles/ 下的全局 CSS 文件
+ * 避免 View Transitions 时 scoped 样式丢失
+ */
+import { ClientRouter } from 'astro:transitions';
+import BaseHead from '@/components/seo/BaseHead.astro';
+import Header from '@/components/layout/Header.astro';
+import Footer from '@/components/layout/Footer.astro';
+import CustomCursor from '@/components/ui/CustomCursor.astro';
+import CodeBlockEnhancer from '@/components/ui/CodeBlockEnhancer.astro';
+import ImageLightbox from '@/components/ui/ImageLightbox.astro';
+import ToastContainer from '@/components/ui/ToastContainer.astro';
+import LoadingBar from '@/components/ui/LoadingBar.astro';
+import CyberPet from '@/components/ui/CyberPet.astro';
+import type { SEOProps } from '@/lib/seo';
+
+import '@/styles/global.css';
+import '@/styles/prose.css';
+import '@/styles/transitions.css';
+import '@/styles/layout.css';
+import '@/styles/comments.css';
+import '@/styles/blog.css';
+import '@/styles/cursor.css';
+import '@/styles/toast.css';
+import '@/styles/home.css';
+import '@/styles/post.css';
+import '@/styles/search.css';
+
+interface Props extends SEOProps {}
+
+const seoProps = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <BaseHead {...seoProps} />
+    <ClientRouter />
+  </head>
+  <body>
+    <div class="global-bg"></div>
+    <div class="global-bg-overlay"></div>
+    <Header />
+    <main class="main-content" id="main-content">
+      <slot />
+    </main>
+    <Footer />
+    <LoadingBar />
+    <CyberPet />
+    <CustomCursor />
+    <CodeBlockEnhancer />
+    <ImageLightbox />
+    <ToastContainer />
+  </body>
+</html>

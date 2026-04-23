@@ -1,0 +1,156 @@
+/* ===================================
+   Search Page — 搜索页样式
+   从 search.astro 提取到全局加载
+   解决 View Transitions 切换时样式丢失
+   =================================== */
+
+.search-page {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.search-title {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+}
+
+/* Search form */
+.search-form {
+  margin-bottom: 2.5rem;
+}
+
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1.125rem;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 1rem 3rem 1rem 3rem;
+  border-radius: 16px;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 200ms, box-shadow 200ms;
+}
+.search-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px oklch(0.65 0.18 280 / 0.12);
+}
+.search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.search-clear {
+  position: absolute;
+  right: 1rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.75rem;
+  transition: all 200ms;
+}
+.search-clear:hover {
+  background: var(--color-primary-light);
+  color: white;
+}
+
+/* Results */
+.results-count {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.result-item {
+  display: block;
+  padding: 1.25rem 1.5rem;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--color-border);
+}
+
+.result-title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--color-text);
+  transition: color 150ms;
+}
+.result-item:hover .result-title {
+  color: var(--color-primary);
+}
+
+.result-excerpt {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+.result-excerpt mark {
+  background: oklch(0.65 0.18 280 / 0.15);
+  color: var(--color-primary);
+  padding: 0.1em 0.2em;
+  border-radius: 3px;
+}
+
+.result-meta {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* States */
+.search-empty, .search-idle {
+  text-align: center;
+  padding: 4rem 0;
+  color: var(--color-text-muted);
+}
+.empty-icon, .idle-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+.empty-hint {
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  opacity: 0.7;
+}
+
+.search-notice {
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  background: oklch(0.78 0.15 80 / 0.08);
+  border: 1px solid oklch(0.78 0.15 80 / 0.2);
+  color: oklch(0.55 0.15 80);
+}
+.search-hint {
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
+  opacity: 0.8;
+}

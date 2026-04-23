@@ -1,0 +1,53 @@
+---
+/**
+ * LoadingBar — 顶部加载进度条
+ * 响应 Astro View Transitions 事件
+ * 样式位于 src/styles/transitions.css
+ */
+---
+
+<div id="nprogress-bar" class="nprogress-bar" transition:persist></div>
+
+<script>
+  function initProgress() {
+    const bar = document.getElementById('nprogress-bar');
+    if (!bar) return;
+
+    // 开始路由导航（页面准备前）
+    document.addEventListener('astro:before-preparation', () => {
+      bar.classList.remove('done');
+      bar.classList.add('loading');
+      bar.style.width = '30%';
+      
+      // 模拟虚假进度
+      (bar as any)._timeout = setTimeout(() => {
+        if (bar.classList.contains('loading')) {
+          bar.style.width = '70%';
+        }
+      }, 300);
+    });
+
+    // 页面内容已经交换完毕
+    document.addEventListener('astro:after-swap', () => {
+      clearTimeout((bar as any)._timeout);
+      bar.style.width = '100%';
+      
+      setTimeout(() => {
+        bar.classList.remove('loading');
+        bar.classList.add('done');
+        setTimeout(() => {
+          if (bar.classList.contains('done')) {
+            bar.style.width = '0';
+          }
+        }, 300); // 等待淡出动画完成
+      }, 200);
+    });
+  }
+
+  // 只在初次加载时绑定事件
+  const win = window as any;
+  if (!win._nprogressInited) {
+    win._nprogressInited = true;
+    initProgress();
+  }
+</script>

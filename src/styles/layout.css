@@ -1,0 +1,349 @@
+/* ===================================
+   Layout Component Styles - 布局组件样式
+   Header + Footer 的样式提取至此
+   以确保在 SSR 模式下全局加载
+   =================================== */
+
+/* ===== 主内容区 (MAIN CONTENT) ===== */
+.main-content {
+  min-height: calc(100vh - 64px);
+  padding-top: 64px; /* Header 高度 */
+}
+
+/* ===== 顶部导航栏 (HEADER) ===== */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--color-surface);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--color-border);
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease !important;
+  will-change: transform;
+}
+.header.scrolled {
+  box-shadow: var(--shadow-md);
+}
+.header.is-hidden {
+  transform: translate3d(0, -100%, 0);
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.logo:hover {
+  transform: scale(1.05) rotate(-2deg);
+}
+.logo-text {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 2.2rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  /* 彻底放弃 background-clip: text 渐变。它会破坏子像素抗锯齿导致字体极其模糊，并在 View Transitions 快照中大几率消失 */
+  color: var(--color-primary);
+  display: inline-block;
+  text-shadow: 0 2px 8px oklch(0.65 0.18 280 / 0.15);
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 暗色模式：高亮色 + 发光 */
+.dark .logo-text {
+  color: var(--color-accent-light);
+  text-shadow: 0 0 16px oklch(0.65 0.18 280 / 0.5);
+}
+
+.logo-icon {
+  font-size: 1.5rem;
+  color: var(--color-primary);
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-link {
+  display: block;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  transition: all 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-link:hover {
+  color: var(--color-primary);
+  background: oklch(0.65 0.18 280 / 0.08);
+}
+.nav-link.active {
+  color: var(--color-primary);
+  background: oklch(0.65 0.18 280 / 0.12);
+  font-weight: 600;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.search-btn:hover {
+  color: var(--color-primary);
+  background: oklch(0.65 0.18 280 / 0.08);
+  transform: scale(1.1);
+}
+
+/* ===== 移动端抽屉 (MOBILE DRAWER) ===== */
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+.mobile-menu-btn:hover {
+  background: oklch(0.65 0.18 280 / 0.08);
+  color: var(--color-primary);
+}
+
+.mobile-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: oklch(0 0 0 / 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-normal) ease;
+}
+.mobile-drawer-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mobile-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 280px;
+  background: var(--color-surface);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  z-index: 1001;
+  box-shadow: -10px 0 30px oklch(0 0 0 / 0.1);
+  transform: translateX(100%);
+  transition: transform var(--duration-normal) var(--ease-spring);
+  display: flex;
+  flex-direction: column;
+}
+.mobile-drawer.open {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  height: 64px;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.drawer-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+.drawer-close-btn:hover {
+  background: oklch(0.65 0.18 280 / 0.08);
+  color: var(--color-primary);
+  transform: scale(1.1) rotate(90deg);
+}
+
+.drawer-nav-links {
+  list-style: none;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.drawer-nav-link {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1.0625rem;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast);
+}
+.drawer-nav-link:hover, .drawer-nav-link.active {
+  background: oklch(0.65 0.18 280 / 0.1);
+  color: var(--color-primary);
+}
+.drawer-nav-link.active {
+  font-weight: 600;
+  border-left: 3px solid var(--color-primary);
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
+  .mobile-menu-btn {
+    display: flex;
+  }
+}
+
+/* ===== FOOTER ===== */
+.footer {
+  margin-top: 6rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 1.5rem;
+}
+
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 3rem;
+}
+
+.footer-brand {
+  max-width: 320px;
+}
+.footer-logo {
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.footer-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.125rem;
+  margin-left: 0.5rem;
+  color: var(--color-text);
+}
+.footer-desc {
+  margin-top: 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.footer-links {
+  display: flex;
+  gap: 4rem;
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.footer-col h4 {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  margin-bottom: 0.25rem;
+}
+.footer-col a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 150ms;
+}
+.footer-col a:hover {
+  color: var(--color-primary);
+}
+
+.footer-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+  margin: 2rem 0 1rem;
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.footer-powered {
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .footer-top {
+    flex-direction: column;
+    gap: 2rem;
+  }
+  .footer-bottom {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+}

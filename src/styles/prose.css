@@ -1,0 +1,371 @@
+/* ===================================
+   Prose — 文章排版自定义（二次元风格）
+   =================================== */
+
+.prose {
+  --prose-body: var(--color-text);
+  --prose-headings: var(--color-text);
+  --prose-links: var(--color-primary);
+  --prose-code: var(--color-primary-dark);
+
+  line-height: 1.85;
+  font-size: 1.0625rem;
+  color: var(--color-text);
+
+  /* ── 标题 ── */
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+    text-shadow: 0 2px 12px oklch(0.65 0.18 280 / 0.15); /* 增加标题微光感 */
+  }
+
+  h2 {
+    margin-top: 2.5em;
+    padding-bottom: 0.4em;
+    border-bottom: 2px dashed oklch(0.90 0.02 280 / 0.4);
+    position: relative;
+  }
+  
+  .dark h2 {
+    border-bottom-color: oklch(0.28 0.04 280 / 0.4);
+  }
+
+  /* ── 段落 ── */
+  p + p {
+    margin-top: 1.25em;
+  }
+
+  /* ── 链接：下划线动画 ── */
+  a:not(.heading-link) {
+    color: var(--color-primary);
+    text-decoration: none;
+    background-image: linear-gradient(var(--color-accent), var(--color-accent));
+    background-size: 0% 2px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size 0.3s var(--ease-spring);
+  }
+  a:not(.heading-link):hover {
+    background-size: 100% 2px;
+  }
+
+  /* ── 代码块：二次元极客风 / 魔法终端 ── */
+  pre {
+    position: relative;
+    border-radius: 12px !important;
+    border: 1px solid oklch(0.65 0.18 280 / 0.3) !important;
+    box-shadow: 0 10px 30px oklch(0 0 0 / 0.3), inset 0 0 0 1px oklch(1 1 1 / 0.05);
+    font-size: 0.9em;
+    font-family: var(--font-mono) !important;
+    padding: 3rem 1.25rem 1.25rem 1.25rem !important; /* 控制四周边距，特别是底部 */
+    margin: 2.5em 0;
+    background: oklch(0.12 0.05 280 / 0.8) !important; /* 深色毛玻璃底 */
+    backdrop-filter: blur(12px);
+    overflow-x: auto;
+  }
+
+  /* 自定义代码块的滚动条，让它变得纤细、二次元 */
+  pre::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  pre::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 8px;
+  }
+  pre::-webkit-scrollbar-thumb {
+    background: oklch(0.65 0.18 280 / 0.4);
+    border-radius: 8px;
+  }
+  pre::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
+  }
+
+  /* 针对代码块内代码的字体强制修复 */
+  pre code {
+    font-family: var(--font-mono) !important;
+  }
+
+  /* 二次元/科技终端前缀装饰 */
+  pre::before {
+    content: '/>_';
+    position: absolute;
+    top: 0.75rem;
+    left: 1rem;
+    font-family: var(--font-mono);
+    color: var(--color-primary);
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    z-index: 10;
+    text-shadow: 0 0 8px var(--color-primary);
+  }
+  
+  /* 顶部科幻/赛博感玻璃横幅 */
+  pre::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2.5rem;
+    background: linear-gradient(90deg, oklch(0.65 0.18 280 / 0.15) 0%, transparent 100%);
+    border-bottom: 1px dashed oklch(0.65 0.18 280 / 0.3);
+    pointer-events: none;
+  }
+
+  /* ── 行内代码 ── */
+  :not(pre) > code {
+    background: oklch(0.65 0.18 280 / 0.08);
+    color: var(--color-primary-dark);
+    padding: 0.15em 0.4em;
+    border-radius: var(--radius-sm);
+    font-size: 0.875em;
+    font-weight: 500;
+  }
+
+  /* ── 引用块 (二次元对话框/卷轴风) ── */
+  blockquote {
+    position: relative;
+    margin: 2.5em 0;
+    padding: 1.5em 1.5em 1.5em 3.5em;
+    border-left: 5px solid var(--color-primary);
+    background: linear-gradient(135deg, oklch(0.65 0.18 280 / 0.08) 0%, oklch(0.75 0.14 350 / 0.02) 100%);
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    box-shadow: inset 0 0 20px oklch(0.65 0.18 280 / 0.05);
+    font-style: normal;
+    color: var(--color-text-secondary);
+  }
+
+  blockquote::before {
+    content: "❞";
+    position: absolute;
+    left: 0.25em;
+    top: 0.1em;
+    font-size: 4em;
+    font-family: serif;
+    color: var(--color-primary);
+    opacity: 0.25;
+    line-height: 1;
+    user-select: none;
+  }
+
+  blockquote p {
+    margin: 0;
+  }
+  
+  blockquote p + p {
+    margin-top: 1em;
+  }
+
+  /* ── 图片 ── */
+  img {
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    transition: box-shadow var(--duration-normal) var(--ease-spring);
+  }
+  img:hover {
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* ── 表格 ── */
+  table {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+  }
+  th {
+    background: var(--color-surface);
+    font-weight: 600;
+  }
+
+  /* ── 水平线 ── */
+  hr {
+    border: none;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-primary-light),
+      var(--color-accent-light),
+      transparent
+    );
+    margin: 3em 0;
+  }
+
+  /* ── 列表标记 ── */
+  ul > li::marker {
+    color: var(--color-primary);
+  }
+  ol > li::marker {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+}
+
+/* ===================================
+   Code Block Enhancer — 代码块操作栏
+   由 CodeBlockEnhancer.astro 注入的 DOM
+   =================================== */
+
+/* 挂载在 pre 右上角的操作栏 */
+.code-header-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  z-index: 20;
+}
+
+/* 语言标签样式 */
+.code-lang {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: oklch(0.65 0.18 280 / 0.6);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* 复制按钮样式 */
+.code-copy-btn {
+  background: transparent;
+  border: none;
+  color: oklch(0.65 0.18 280 / 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.code-copy-btn:hover {
+  color: var(--color-primary);
+  background: oklch(0.65 0.18 280 / 0.15);
+}
+
+.code-copy-btn.success {
+  color: oklch(0.70 0.17 150);
+  background: oklch(0.70 0.17 150 / 0.15);
+}
+
+/* ===================================
+   Callouts / Admonitions — 提示框
+   由 remark-callouts 插件生成的 DOM
+   用法: :::note / :::tip / :::warning / :::caution
+   =================================== */
+
+.callout {
+  position: relative;
+  margin: 2em 0;
+  padding: 1.25em 1.5em;
+  border-radius: 12px;
+  border-left: 5px solid;
+  backdrop-filter: blur(8px);
+}
+
+.callout-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 0.5em !important;
+  letter-spacing: 0.02em;
+}
+
+.callout p:last-child {
+  margin-bottom: 0;
+}
+
+/* Note — 薰衣草紫 */
+.callout-note {
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, oklch(0.65 0.18 280 / 0.08) 0%, oklch(0.65 0.18 280 / 0.03) 100%);
+  color: var(--color-text);
+}
+.callout-note .callout-title {
+  color: var(--color-primary);
+}
+
+/* Tip — 翡翠绿 */
+.callout-tip {
+  border-color: oklch(0.65 0.20 150);
+  background: linear-gradient(135deg, oklch(0.65 0.20 150 / 0.08) 0%, oklch(0.65 0.20 150 / 0.03) 100%);
+  color: var(--color-text);
+}
+.callout-tip .callout-title {
+  color: oklch(0.65 0.20 150);
+}
+
+/* Warning — 琥珀橙 */
+.callout-warning {
+  border-color: oklch(0.75 0.18 70);
+  background: linear-gradient(135deg, oklch(0.75 0.18 70 / 0.08) 0%, oklch(0.75 0.18 70 / 0.03) 100%);
+  color: var(--color-text);
+}
+.callout-warning .callout-title {
+  color: oklch(0.70 0.18 70);
+}
+
+/* Caution — 樱花红 */
+.callout-caution {
+  border-color: oklch(0.65 0.22 25);
+  background: linear-gradient(135deg, oklch(0.65 0.22 25 / 0.08) 0%, oklch(0.65 0.22 25 / 0.03) 100%);
+  color: var(--color-text);
+}
+.callout-caution .callout-title {
+  color: oklch(0.65 0.22 25);
+}
+
+/* ===================================
+   Image Lightbox — 图片灯箱
+   由 ImageLightbox.astro 控制
+   =================================== */
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99990;
+  background: oklch(0 0 0 / 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  cursor: zoom-out;
+}
+
+.lightbox-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.lightbox-overlay img {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px oklch(0 0 0 / 0.5);
+  transform: scale(0.9);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lightbox-overlay.active img {
+  transform: scale(1);
+}
+
+/* prose 内的图片增加 zoom-in 光标提示 */
+.prose img {
+  cursor: zoom-in;
+}

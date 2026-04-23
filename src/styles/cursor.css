@@ -1,0 +1,65 @@
+/* ===================================
+   Custom Cursor Styles
+   仅在支持精确指针的设备上生效
+   =================================== */
+
+@media (pointer: fine) {
+  /* 完全隐藏系统鼠标 */
+  *, *::before, *::after {
+    cursor: none !important;
+  }
+
+  .cursor-dot,
+  .cursor-outline {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 99999;
+    border-radius: 50%;
+    will-change: transform;
+  }
+
+  /* 中心实心圆点 —— 这就是准心 */
+  .cursor-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--color-primary);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.5), 0 0 10px var(--color-primary);
+  }
+
+  /* 外圈：小巧柔和的光环，不遮挡视线 */
+  .cursor-outline {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--color-primary);
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+    transition: width 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+                height 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+                background-color 0.2s,
+                border-color 0.2s,
+                opacity 0.2s;
+  }
+
+  /* 悬停可点击元素：外圈微微放大 + 填充 */
+  body.cursor-hover .cursor-dot {
+    opacity: 0.4;
+  }
+
+  body.cursor-hover .cursor-outline {
+    width: 44px;
+    height: 44px;
+    background-color: oklch(0.65 0.18 280 / 0.15);
+    border-color: var(--color-primary);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+}
+
+/* 触摸屏设备完全隐藏 */
+@media (pointer: coarse) {
+  .cursor-dot,
+  .cursor-outline {
+    display: none !important;
+  }
+}
