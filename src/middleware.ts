@@ -20,6 +20,12 @@ function getCookieValue(cookieHeader: string | null, key: string): string | null
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  // 将 Cloudflare Pages 的环境变量注入全局，供 getCloudflareEnv 使用
+  const env = (context.locals as any).runtime?.env;
+  if (env) {
+    (globalThis as any).__CF_ENV__ = env;
+  }
+
   const url = new URL(context.request.url);
   const path = url.pathname;
 

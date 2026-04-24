@@ -10,14 +10,18 @@ let envModule: { env: any } | null = null;
  * 在本地开发和生产环境都可用
  */
 export async function getCloudflareEnv(): Promise<{ DB?: D1Database; BUCKET?: R2Bucket; ADMIN_PASSWORD?: string; [key: string]: any }> {
+  // 1. 优先使用中间件注入的 Pages runtime env
+  if ((globalThis as any).__CF_ENV__) {
+    return (globalThis as any).__CF_ENV__;
+  }
+
+  // 2. 本地开发回退使用 cloudflare:workers 动态导入
   try {
     if (!envModule) {
-      // 动态导入以避免在非 Cloudflare 环境下报错
       envModule = await import('cloudflare:workers');
     }
     return envModule.env ?? {};
   } catch {
-    // 非 Cloudflare 环境（如纯 astro dev），返回空对象
     return {};
   }
 }
