@@ -83,7 +83,7 @@ if (cookieHeader) {
   if (match) {
     try {
       const { getDB } = await import("@/lib/cloudflare/env");
-      const db = await getDB(Astro.locals);
+      const db = await getDB();
       if (db) {
         const { validateSession } = await import("@/lib/cloudflare/d1");
         const valid = await validateSession(db, decodeURIComponent(match[1]));

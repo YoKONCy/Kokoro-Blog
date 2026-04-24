@@ -15,7 +15,7 @@ async function checkAuth(request: Request): Promise<boolean> {
   if (!cookieHeader) return false;
   const match = cookieHeader.match(/(?:^|;\s*)session=([^;]*)/);
   if (!match) return false;
-  const db = await getDB(context.locals);
+  const db = await getDB();
   if (!db) return false;
   return validateSession(db, decodeURIComponent(match[1]));
 }

@@ -8,7 +8,7 @@ import ThemeToggle from '@/components/ui/ThemeToggle.svelte';
 import { loadSiteConfig } from '@/lib/settings';
 import { getDB } from '@/lib/cloudflare/env';
 
-const db = await getDB(Astro.locals);
+const db = await getDB();
 const config = await loadSiteConfig(db ?? null);
 const siteTitle = config.get('site.title');
 const logoText = config.get('site.logo_text') || siteTitle;

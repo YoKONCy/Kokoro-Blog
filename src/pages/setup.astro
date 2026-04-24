@@ -11,7 +11,7 @@ import { checkIsInitialized, executeSetup } from '@/lib/cloudflare/setup';
 
 let errorMessage = '';
 
-const db = await getDB(Astro.locals);
+const db = await getDB();
 if (!db) {
   return Astro.redirect('/');
 }

@@ -30,7 +30,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   // 2. 开源向导：检查系统是否已初始化
   if (path !== '/setup') {
-    const db = await getDB(context.locals);
+    const db = await getDB();
     if (db) {
       const isInit = await checkIsInitialized(db);
       if (!isInit) {
@@ -59,7 +59,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   // 校验 session 是否有效（查 D1 sessions 表）
   try {
-    const db = await getDB(context.locals);
+    const db = await getDB();
 
     if (!db) {
       // D1 不可用（本地开发无绑定），放行并标记

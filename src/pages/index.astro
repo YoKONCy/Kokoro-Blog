@@ -15,7 +15,7 @@ import { getPublishedPosts, parseTags } from '@/lib/cloudflare/d1';
 import { getDB } from '@/lib/cloudflare/env';
 import { loadSiteConfig } from '@/lib/settings';
 
-const db = await getDB(Astro.locals);
+const db = await getDB();
 const config = await loadSiteConfig(db ?? null);
 
 // 获取最新文章（已发布，按日期倒序，取前 6 篇）

@@ -16,7 +16,7 @@ let posts: Awaited<ReturnType<typeof getPublishedPosts>> = [];
 let allTags: string[] = [];
 
 try {
-  const db = await getDB(Astro.locals);
+  const db = await getDB();
   if (db) {
     posts = await getPublishedPosts(db);
     // 提取所有标签（去重）

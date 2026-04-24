@@ -22,7 +22,7 @@ if (!slug) {
   return Astro.redirect('/blog', 302);
 }
 
-const db = await getDB(Astro.locals);
+const db = await getDB();
 if (!db) {
   return new Response('数据库不可用', { status: 503 });
 }

@@ -11,7 +11,7 @@ import { getDB } from '@/lib/cloudflare/env';
 import { loadSiteConfig } from '@/lib/settings';
 import { renderMarkdown } from '@/lib/markdown';
 
-const db = await getDB(Astro.locals);
+const db = await getDB();
 const config = await loadSiteConfig(db ?? null);
 
 const aboutTitle = config.get('about.title');

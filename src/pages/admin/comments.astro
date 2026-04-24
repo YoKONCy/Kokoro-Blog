@@ -10,7 +10,7 @@ import { getAllComments, deleteComment } from '@/lib/cloudflare/d1';
 import { getDB } from '@/lib/cloudflare/env';
 import { formatDate } from '@/lib/date';
 
-const db = await getDB(Astro.locals);
+const db = await getDB();
 
 let message = '';
 let messageType = '';

@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ url }) => {
       return Response.json({ success: false, error: '搜索词过长' }, { status: 400 });
     }
 
-    const db = await getDB(context.locals);
+    const db = await getDB();
     if (!db) return Response.json({ success: false, error: 'D1 不可用' }, { status: 503 });
     const results = await searchPosts(db, query);
 

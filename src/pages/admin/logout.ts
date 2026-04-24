@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ request, redirect }) => {
   // 删除 D1 中的 session 记录
   if (token) {
     try {
-      const db = await getDB(context.locals);
+      const db = await getDB();
       if (db) {
         await deleteSession(db, token);
       }

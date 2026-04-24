@@ -19,7 +19,7 @@ async function checkAuth(request: Request): Promise<boolean> {
   if (!match) return false;
 
   const { validateSession } = await import('@/lib/cloudflare/d1');
-  const db = await getDB(context.locals);
+  const db = await getDB();
   if (!db) return false;
   return validateSession(db, decodeURIComponent(match[1]));
 }
@@ -29,7 +29,7 @@ export const GET: APIRoute = async ({ request }) => {
     return Response.json({ success: false, error: '未授权' }, { status: 401 });
   }
   try {
-    const db = await getDB(context.locals);
+    const db = await getDB();
     if (!db) return Response.json({ success: false, error: 'D1 不可用' }, { status: 503 });
     const posts = await getAllPosts(db);
     return Response.json({ success: true, data: posts });
@@ -43,7 +43,7 @@ export const POST: APIRoute = async ({ request }) => {
     return Response.json({ success: false, error: '未授权' }, { status: 401 });
   }
   try {
-    const db = await getDB(context.locals);
+    const db = await getDB();
     if (!db) return Response.json({ success: false, error: 'D1 不可用' }, { status: 503 });
 
     const body = await request.json() as {
@@ -87,7 +87,7 @@ export const PUT: APIRoute = async ({ request }) => {
     return Response.json({ success: false, error: '未授权' }, { status: 401 });
   }
   try {
-    const db = await getDB(context.locals);
+    const db = await getDB();
     if (!db) return Response.json({ success: false, error: 'D1 不可用' }, { status: 503 });
 
     const body = await request.json() as {
@@ -134,7 +134,7 @@ export const DELETE: APIRoute = async ({ request }) => {
     return Response.json({ success: false, error: '未授权' }, { status: 401 });
   }
   try {
-    const db = await getDB(context.locals);
+    const db = await getDB();
     if (!db) return Response.json({ success: false, error: 'D1 不可用' }, { status: 503 });
 
     const url = new URL(request.url);

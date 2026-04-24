@@ -20,7 +20,7 @@ let posts: Awaited<ReturnType<typeof getPublishedPostsByTag>> = [];
 let allTags: string[] = [];
 
 try {
-  const db = await getDB(Astro.locals);
+  const db = await getDB();
   if (db) {
     posts = await getPublishedPostsByTag(db, tag);
     allTags = await getAllTags(db);

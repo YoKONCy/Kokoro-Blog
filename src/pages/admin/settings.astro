@@ -10,7 +10,7 @@ import { loadSiteConfig } from '@/lib/settings';
 import { setSettings } from '@/lib/cloudflare/d1';
 import { getDB } from '@/lib/cloudflare/env';
 
-const db = await getDB(Astro.locals);
+const db = await getDB();
 
 let message = '';
 let messageType = '';

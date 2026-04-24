@@ -94,7 +94,7 @@ CREATE INDEX IF NOT EXISTS idx_comments_ip_time ON comments(ip_hash, created_at)
  */
 export async function checkIsInitialized(db?: D1Database | null): Promise<boolean> {
   if (!db) {
-    db = await getDB(context.locals);
+    db = await getDB();
     if (!db) return true; // 本地无 DB 时假装已初始化以避免死循环
   }
 
