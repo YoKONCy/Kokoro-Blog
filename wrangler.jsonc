@@ -9,5 +9,12 @@
 	},
 	"observability": {
 		"enabled": true
-	}
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "kokoro-blog-db",
+			"database_id": "placeholder"
+		}
+	]
 }
