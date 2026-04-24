@@ -97,7 +97,7 @@
   {/if}
 
   {#if submitted}
-    <div class="cs-success">✅ 评论已提交，审核通过后将显示。感谢你的留言！</div>
+    <div class="cs-success">✅ 评论发表成功，感谢你的留言！</div>
   {:else}
     <form class="cs-form" onsubmit={handleSubmit}>
       <div class="cs-form-row">

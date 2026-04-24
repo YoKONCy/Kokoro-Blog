@@ -2,121 +2,81 @@
 /**
  * 代码块增强器
  * 在客户端为 Markdown 代码块注入：
- * 1. 语言标签
- * 2. 一键复制按钮
+ * 1. 客户端语法高亮（highlight.js，因 Cloudflare Workers 禁止 WASM）
+ * 2. 语言标签
+ * 3. 一键复制按钮
  * 样式已提取到 src/styles/prose.css
  */
 ---
 
-<script>
-  function enhanceCodeBlocks() {
-    const blocks = document.querySelectorAll('pre');
-    
-    blocks.forEach((block) => {
-      // 防止在 View Transitions 期间重复绑定
-      if ((block as any)._enhanced) return;
-      (block as any)._enhanced = true;
+<!-- highlight.js 资源 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/atom-one-dark.min.css" />
+<script is:inline src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
 
-      // 创建右上角的容器
-      const header = document.createElement('div');
-      header.className = 'code-header-actions';
-      
-      // 解析代码语言
-      let lang = '';
-      if (block.hasAttribute('data-language')) {
-        lang = block.getAttribute('data-language') || '';
-      } else {
-        const codeElement = block.querySelector('code');
-        if (codeElement) {
-          const match = codeElement.className.match(/language-(\w+)/);
-          if (match) lang = match[1];
-        }
-      }
+<!-- 高亮逻辑：is:inline + data-astro-rerun 确保每次 View Transitions 切页都重新执行 -->
+<script is:inline data-astro-rerun>
+(function() {
+  var blocks = document.querySelectorAll('pre');
+  if (!blocks.length) return;
 
-      // 如果成功提取到语言，则显示标签
-      if (lang) {
-        const langSpan = document.createElement('span');
-        langSpan.className = 'code-lang';
-        langSpan.textContent = lang.toUpperCase();
-        header.appendChild(langSpan);
-      }
+  blocks.forEach(function(block) {
+    // 语法高亮（防重复）
+    var codeEl = block.querySelector('code');
+    if (window.hljs && codeEl && !codeEl.dataset.highlighted) {
+      window.hljs.highlightElement(codeEl);
+    }
 
-      // 创建复制按钮
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'code-copy-btn';
-      copyBtn.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-        </svg>
-      `;
-      copyBtn.setAttribute('aria-label', '复制代码');
+    // 防止 UI 增强重复绑定
+    if (block._codeEnhanced) return;
+    block._codeEnhanced = true;
 
-      // 复制功能逻辑
-      copyBtn.addEventListener('click', async () => {
-        try {
-          const code = block.querySelector('code')?.innerText || '';
-          await navigator.clipboard.writeText(code);
-          
-          copyBtn.innerHTML = '复制成功 (๑•̀ㅂ•́)و✧';
-          copyBtn.classList.add('success');
-          
-          setTimeout(() => {
-            copyBtn.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            `;
-            copyBtn.classList.remove('success');
-          }, 2000);
-        } catch (err) {
-          console.error('Failed to copy text: ', err);
-          copyBtn.innerHTML = '复制失败 ╥﹏╥';
-        }
-      });
+    // 创建右上角的操作栏
+    var header = document.createElement('div');
+    header.className = 'code-header-actions';
 
-      header.appendChild(copyBtn);
-      block.appendChild(header);
+    // 解析代码语言
+    var lang = '';
+    if (block.hasAttribute('data-language')) {
+      lang = block.getAttribute('data-language') || '';
+    } else if (block.parentElement && block.parentElement.hasAttribute('data-language')) {
+      lang = block.parentElement.getAttribute('data-language') || '';
+    } else if (codeEl) {
+      var match = codeEl.className.match(/language-(\w+)/);
+      if (match) lang = match[1];
+    }
 
-      // --- 拖拽滚动支持 (Drag to Scroll) ---
-      let isDown = false;
-      let startX = 0;
-      let scrollLeft = 0;
+    // 语言标签
+    if (lang) {
+      var langSpan = document.createElement('span');
+      langSpan.className = 'code-lang';
+      langSpan.textContent = lang.toUpperCase();
+      header.appendChild(langSpan);
+    }
 
-      block.addEventListener('mousedown', (e: MouseEvent) => {
-        // 防止点击在复制按钮等顶部操作栏时触发拖拽
-        if ((e.target as HTMLElement).closest('.code-header-actions')) return;
-        
-        isDown = true;
-        block.style.cursor = 'grabbing';
-        block.style.userSelect = 'none'; // 拖拽时防止选中文本
-        startX = e.pageX - block.offsetLeft;
-        scrollLeft = block.scrollLeft;
-      });
+    // 复制按钮
+    var copyBtn = document.createElement('button');
+    copyBtn.className = 'code-copy-btn';
+    var svgIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    copyBtn.innerHTML = svgIcon;
+    copyBtn.setAttribute('aria-label', '复制代码');
 
-      block.addEventListener('mouseleave', () => {
-        isDown = false;
-        block.style.cursor = '';
-        block.style.userSelect = '';
-      });
-
-      block.addEventListener('mouseup', () => {
-        isDown = false;
-        block.style.cursor = '';
-        block.style.userSelect = '';
-      });
-
-      block.addEventListener('mousemove', (e: MouseEvent) => {
-        if (!isDown) return;
-        e.preventDefault(); // 阻止默认的文本拖拽/高亮行为
-        const x = e.pageX - block.offsetLeft;
-        const walk = (x - startX) * 1.5; // 1.5倍拖拽灵敏度
-        block.scrollLeft = scrollLeft - walk;
+    copyBtn.addEventListener('click', function() {
+      var code = block.querySelector('code');
+      var text = code ? code.innerText : '';
+      navigator.clipboard.writeText(text).then(function() {
+        copyBtn.innerHTML = '复制成功 (๑•̀ㅂ•́)و✧';
+        copyBtn.classList.add('success');
+        setTimeout(function() {
+          copyBtn.innerHTML = svgIcon;
+          copyBtn.classList.remove('success');
+        }, 2000);
+      }).catch(function() {
+        copyBtn.innerHTML = '复制失败 ╥﹏╥';
       });
     });
-  }
 
-  // 支持 Astro View Transitions
-  document.addEventListener('astro:page-load', enhanceCodeBlocks);
+    header.appendChild(copyBtn);
+    block.appendChild(header);
+  });
+})();
 </script>

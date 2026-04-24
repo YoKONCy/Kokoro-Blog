@@ -1,0 +1,24 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import AdminNav from '@/components/admin/AdminNav.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  currentPath?: string;
+}
+
+const { title, description, currentPath = Astro.url.pathname } = Astro.props;
+---
+
+<BaseLayout title={`${title} - 管理后台`} description={description || '秋月佑空的管理后台'} hideHeaderFooter={true}>
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <AdminNav currentPath={currentPath} />
+    </aside>
+    
+    <main class="admin-main">
+      <slot />
+    </main>
+  </div>
+</BaseLayout>

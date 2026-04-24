@@ -28,10 +28,13 @@ import '@/styles/toast.css';
 import '@/styles/home.css';
 import '@/styles/post.css';
 import '@/styles/search.css';
+import '@/styles/admin.css';
 
-interface Props extends SEOProps {}
+interface Props extends SEOProps {
+  hideHeaderFooter?: boolean;
+}
 
-const seoProps = Astro.props;
+const { hideHeaderFooter = false, ...seoProps } = Astro.props;
 ---
 
 <!doctype html>
@@ -43,11 +46,11 @@ const seoProps = Astro.props;
   <body>
     <div class="global-bg"></div>
     <div class="global-bg-overlay"></div>
-    <Header />
-    <main class="main-content" id="main-content">
+    {!hideHeaderFooter && <Header />}
+    <main class={`main-content ${hideHeaderFooter ? 'is-admin-root' : ''}`} id="main-content">
       <slot />
     </main>
-    <Footer />
+    {!hideHeaderFooter && <Footer />}
     <LoadingBar />
     <CyberPet />
     <CustomCursor />

@@ -3,10 +3,11 @@
  */
 import type { APIRoute } from 'astro';
 import { searchPosts } from '@/lib/cloudflare/search';
+import { getDB } from '@/lib/cloudflare/env';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ url, locals }) => {
+export const GET: APIRoute = async ({ url }) => {
   try {
     const query = url.searchParams.get('q')?.trim();
     if (!query) {
@@ -16,7 +17,8 @@ export const GET: APIRoute = async ({ url, locals }) => {
       return Response.json({ success: false, error: '搜索词过长' }, { status: 400 });
     }
 
-    const db = locals.runtime.env.DB;
+    const db = await getDB();
+    if (!db) return Response.json({ success: false, error: 'D1 不可用' }, { status: 503 });
     const results = await searchPosts(db, query);
 
     return Response.json({ success: true, data: { results, query } });

@@ -103,3 +103,14 @@
 - **解决**：
   1. 对于 Header、Footer 等**在全站保持不变的全局容器**，必须在其根 HTML 元素上添加 `transition:persist` 指令（如 `<header transition:persist>`）。
   2. 该指令会告诉 Astro 直接在 DOM 树中保留该节点，跳过快照和重建过程，从而保证字体永远保持原生矢量渲染，彻底杜绝切页闪烁和低分辨率锯齿问题。
+
+## 13. Astro v6 弃用 `Astro.locals.runtime.env`
+
+### 所有页面 500 Internal Server Error
+- **症状**：`wrangler dev` 启动后访问任何页面均返回 500，错误信息为 `Astro.locals.runtime.env has been removed in Astro v6`
+- **原因**：Astro v6 + `@astrojs/cloudflare` 适配器不再通过 `locals.runtime.env` 暴露 Cloudflare 绑定，改为要求使用 `import { env } from 'cloudflare:workers'` 模块
+- **解决**：
+  1. 创建统一的 env helper：`src/lib/cloudflare/env.ts`
+  2. 使用 `getDB()` / `getCloudflareEnv()` 替代所有 `locals.runtime.env` 访问
+  3. API route 的函数签名中不再需要解构 `locals`
+- **注意**：`wrangler dev` 使用 `dist/` 目录下的构建产物，修改源码后必须重新 `astro build` 才能生效。直接重启 `wrangler dev` 可能仍使用旧的缓存构建。

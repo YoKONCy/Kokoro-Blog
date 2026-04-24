@@ -1,7 +1,7 @@
 {
 	"compatibility_date": "2026-04-23",
 	"compatibility_flags": ["global_fetch_strictly_public", "nodejs_compat"],
-	"name": "my-blog",
+	"name": "kokoro-blog",
 	"main": "@astrojs/cloudflare/entrypoints/server",
 	"assets": {
 		"directory": "./dist",
@@ -9,5 +9,18 @@
 	},
 	"observability": {
 		"enabled": true
-	}
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "my-blog-db",
+			"database_id": "YOUR_D1_DATABASE_ID"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "BUCKET",
+			"bucket_name": "my-blog-uploads"
+		}
+	]
 }

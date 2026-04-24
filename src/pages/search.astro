@@ -8,6 +8,7 @@ export const prerender = false;
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { t } from '@/lib/i18n';
 import { searchPosts, type SearchResult } from '@/lib/cloudflare/search';
+import { getDB } from '@/lib/cloudflare/env';
 
 const query = Astro.url.searchParams.get('q')?.trim() || '';
 let results: SearchResult[] = [];
@@ -15,7 +16,8 @@ let searchError = '';
 
 if (query) {
   try {
-    const db = Astro.locals.runtime.env.DB;
+    const db = await getDB();
+    if (!db) throw new Error('D1 not bound');
     results = await searchPosts(db, query);
   } catch {
     searchError = '搜索服务暂不可用（D1 未绑定）';

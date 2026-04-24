@@ -1,0 +1,36 @@
+---
+/**
+ * 关于页 — /about
+ * 内容从 site_settings 动态读取，支持 Markdown 渲染
+ * 样式复用 post.css 的 prose 排版
+ */
+export const prerender = false;
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getDB } from '@/lib/cloudflare/env';
+import { loadSiteConfig } from '@/lib/settings';
+import { renderMarkdown } from '@/lib/markdown';
+
+const db = await getDB();
+const config = await loadSiteConfig(db ?? null);
+
+const aboutTitle = config.get('about.title');
+const aboutContent = config.get('about.content');
+const aboutAvatar = config.get('about.avatar');
+
+const { html: contentHtml } = await renderMarkdown(aboutContent);
+---
+
+<BaseLayout title={aboutTitle} description={`${aboutTitle} — 了解更多`}>
+  <div class="about-page">
+    <div class="about-card glow-card">
+      {aboutAvatar && (
+        <div class="about-avatar-wrapper">
+          <img src={aboutAvatar} alt={aboutTitle} class="about-avatar" loading="eager" />
+        </div>
+      )}
+      <h1 class="about-title gradient-text">{aboutTitle}</h1>
+      <div class="post-content prose" set:html={contentHtml} />
+    </div>
+  </div>
+</BaseLayout>

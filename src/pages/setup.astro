@@ -1,0 +1,198 @@
+---
+/**
+ * 初始化向导页 — /setup
+ * 如果数据库已配置，则重定向到首页
+ */
+export const prerender = false;
+
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getDB } from '@/lib/cloudflare/env';
+import { checkIsInitialized, executeSetup } from '@/lib/cloudflare/setup';
+
+let errorMessage = '';
+
+const db = await getDB();
+if (!db) {
+  return Astro.redirect('/');
+}
+
+const isInit = await checkIsInitialized(db);
+if (isInit) {
+  return Astro.redirect('/');
+}
+
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const siteName = formData.get('siteName')?.toString() ?? 'My Awesome Blog';
+    const password = formData.get('password')?.toString() ?? '';
+
+    if (password.length < 6) {
+      errorMessage = '管理员密码至少需要 6 个字符';
+    } else {
+      // 密码 SHA-256 哈希
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      await executeSetup(db, hashHex, siteName);
+
+      return Astro.redirect('/admin/login?msg=setup_success');
+    }
+  } catch (err: any) {
+    console.error('[setup] 初始化失败:', err);
+    errorMessage = '初始化失败：' + (err.message || '未知错误');
+  }
+}
+---
+
+<BaseLayout title="系统初始化向导" description="欢迎使用博客系统，只需一步完成初始化。">
+  <div class="setup-page">
+    <div class="glow-card setup-card">
+      <div class="setup-header">
+        <h1 class="gradient-text">欢迎使用</h1>
+        <p class="description">您的数据库尚未初始化，请完成基础配置以启动博客。</p>
+      </div>
+
+      {errorMessage && (
+        <div class="error-alert">
+          {errorMessage}
+        </div>
+      )}
+
+      <form method="POST" class="setup-form">
+        <div class="form-group">
+          <label for="siteName">网站名称</label>
+          <input type="text" id="siteName" name="siteName" placeholder="例如：佑空的赛博基地" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">设置管理员密码</label>
+          <input type="password" id="password" name="password" placeholder="不少于6位，用于登录管理后台" value="admin123" required minlength="6" />
+        </div>
+
+        <button type="submit" class="submit-btn" id="setup-btn">一键初始化系统</button>
+      </form>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .setup-page {
+    min-height: calc(100vh - 200px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .setup-card {
+    width: 100%;
+    max-width: 480px;
+    padding: 2.5rem;
+  }
+
+  .setup-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .setup-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .description {
+    color: var(--color-text-dim);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .error-alert {
+    background-color: oklch(0.65 0.20 25 / 0.1);
+    color: var(--color-error);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    border: 1px solid oklch(0.65 0.20 25 / 0.2);
+  }
+
+  .setup-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-text);
+  }
+
+  .form-group input {
+    background: oklch(0.2 0.02 280 / 0.05);
+    border: 1px solid var(--color-border);
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-size: 1rem;
+    transition: all var(--duration-fast);
+  }
+
+  .dark .form-group input {
+    background: oklch(0.9 0.02 280 / 0.05);
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+  }
+
+  .submit-btn {
+    margin-top: 1rem;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: white;
+    border: none;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease-spring);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .submit-btn:active {
+    transform: translateY(0);
+  }
+</style>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const form = document.querySelector('.setup-form') as HTMLFormElement;
+    const btn = document.getElementById('setup-btn') as HTMLButtonElement;
+    if (form && btn) {
+      form.addEventListener('submit', () => {
+        btn.disabled = true;
+        btn.textContent = '初始化中，请稍候...';
+      });
+    }
+  });
+</script>

@@ -5,6 +5,13 @@
  */
 import { t } from '@/lib/i18n';
 import ThemeToggle from '@/components/ui/ThemeToggle.svelte';
+import { loadSiteConfig } from '@/lib/settings';
+import { getDB } from '@/lib/cloudflare/env';
+
+const db = await getDB();
+const config = await loadSiteConfig(db ?? null);
+const siteTitle = config.get('site.title');
+const logoText = config.get('site.logo_text') || siteTitle;
 
 const navLinks = [
   { href: '/', label: t('nav.home') },
@@ -19,9 +26,9 @@ const currentPath = Astro.url.pathname;
 <header class="header" id="main-header" transition:persist>
   <nav class="header-inner">
     <!-- Logo -->
-    <a href="/" class="logo" aria-label={t('site.title')}>
+    <a href="/" class="logo" aria-label={siteTitle}>
       <span class="logo-icon">✦</span>
-      <span class="logo-text">{t('site.title')}</span>
+      <span class="logo-text">{logoText}</span>
     </a>
 
     <!-- 导航链接 -->
@@ -62,7 +69,7 @@ const currentPath = Astro.url.pathname;
 <div class="mobile-drawer-overlay" id="mobile-drawer-overlay"></div>
 <div class="mobile-drawer" id="mobile-drawer">
   <div class="drawer-header">
-    <span class="logo-text">{t('site.title')}</span>
+    <span class="logo-text">{logoText}</span>
     <button class="drawer-close-btn" id="drawer-close-btn" aria-label="Close">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -154,6 +161,19 @@ const currentPath = Astro.url.pathname;
       var drawerLinks = document.querySelectorAll('.drawer-nav-link');
       drawerLinks.forEach(function(link) {
         link.addEventListener('click', closeDrawer);
+      });
+
+      // 更新导航链接的高亮状态（因为 transition:persist 使得服务器端的 class 无法在路由切换时更新）
+      var currentPath = window.location.pathname;
+      var allLinks = document.querySelectorAll('.nav-link, .drawer-nav-link');
+      allLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (currentPath === href || (href !== '/' && currentPath.startsWith(href))) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
       });
     }
 

@@ -29,22 +29,41 @@
     let my = -100;
     let ox = -100;
     let oy = -100;
+    let isMoving = false;
+    let loopId: number | null = null;
 
     // 内点：mousemove 同步更新，不加 passive 确保零延迟
     window.addEventListener('mousemove', (e) => {
       mx = e.clientX;
       my = e.clientY;
       dot.style.transform = `translate3d(${mx - 4}px, ${my - 4}px, 0)`;
+      
+      if (!isMoving) {
+        isMoving = true;
+        if (!loopId) loopId = requestAnimationFrame(loop);
+      }
     });
 
     // 外圈：rAF + 高跟手系数 0.3（越大越跟手，1 = 完全同步）
     const loop = () => {
-      ox += (mx - ox) * 0.3;
-      oy += (my - oy) * 0.3;
+      const dx = mx - ox;
+      const dy = my - oy;
+      
+      // 当外圈已经追上内点时，停止动画循环以节省 CPU/GPU 资源
+      if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
+        ox = mx;
+        oy = my;
+        outline.style.transform = `translate3d(${ox - 16}px, ${oy - 16}px, 0)`;
+        isMoving = false;
+        loopId = null;
+        return;
+      }
+      
+      ox += dx * 0.3;
+      oy += dy * 0.3;
       outline.style.transform = `translate3d(${ox - 16}px, ${oy - 16}px, 0)`;
-      requestAnimationFrame(loop);
+      loopId = requestAnimationFrame(loop);
     };
-    requestAnimationFrame(loop);
 
     bindHoverEvents();
   }

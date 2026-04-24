@@ -1,0 +1,100 @@
+---
+/**
+ * 管理后台首页 — 统计看板
+ * /admin
+ */
+export const prerender = false;
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { getPublishedPostCount, getTotalCommentCount, getTotalViewCount, getTodayViewCount, getWeeklyViews, getTopPages } from '@/lib/cloudflare/d1';
+import { getDB } from '@/lib/cloudflare/env';
+import { formatDate } from '@/lib/date';
+
+const db = await getDB();
+
+let postCount = 0;
+let commentCount = 0;
+let totalViews = 0;
+let todayViews = 0;
+let weeklyViews: { date: string; count: number }[] = [];
+let topPages: { slug: string; view_count: number }[] = [];
+
+if (db) {
+  try {
+    [postCount, commentCount, totalViews, todayViews, weeklyViews, topPages] = await Promise.all([
+      getPublishedPostCount(db),
+      getTotalCommentCount(db),
+      getTotalViewCount(db),
+      getTodayViewCount(db),
+      getWeeklyViews(db),
+      getTopPages(db, 5),
+    ]);
+  } catch (e) {
+    console.error('[admin] 加载统计数据失败:', e);
+  }
+}
+
+// 计算柱状图最大值
+const maxView = Math.max(...weeklyViews.map(d => d.count), 1);
+---
+
+<AdminLayout title="统计看板" description="站点统计看板">
+  <div class="admin-page">
+    <div class="admin-page-header">
+      <h1 class="admin-page-title">📊 统计看板</h1>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="admin-stats-grid">
+      <div class="admin-stat-card">
+        <p class="admin-stat-label">📝 总文章数</p>
+        <p class="admin-stat-value">{postCount}</p>
+      </div>
+      <div class="admin-stat-card">
+        <p class="admin-stat-label">👁️ 总浏览量</p>
+        <p class="admin-stat-value">{totalViews}</p>
+      </div>
+      <div class="admin-stat-card">
+        <p class="admin-stat-label">💬 总评论数</p>
+        <p class="admin-stat-value">{commentCount}</p>
+      </div>
+      <div class="admin-stat-card">
+        <p class="admin-stat-label">📈 今日 PV</p>
+        <p class="admin-stat-value">{todayViews}</p>
+      </div>
+    </div>
+
+    <!-- 7 天趋势 -->
+    {weeklyViews.length > 0 && (
+      <div class="admin-chart-wrapper">
+        <p class="admin-chart-title">近 7 天浏览趋势</p>
+        <div class="admin-chart-bars">
+          {weeklyViews.map(d => (
+            <div class="admin-chart-bar-group">
+              <span class="admin-chart-value">{d.count}</span>
+              <div class="admin-chart-bar" style={`height: ${Math.max((d.count / maxView) * 100, 4)}%`}></div>
+              <span class="admin-chart-label">{d.date.slice(5)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- 热门文章 -->
+    {topPages.length > 0 && (
+      <div class="admin-chart-wrapper">
+        <p class="admin-chart-title">🔥 热门文章 Top 5</p>
+        <ul class="admin-rank-list">
+          {topPages.map((p, i) => (
+            <li class="admin-rank-item">
+              <span class="admin-rank-num">{i + 1}</span>
+              <span class="admin-rank-slug">{p.slug}</span>
+              <span class="admin-rank-count">{p.view_count} 次</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+  </div>
+</AdminLayout>

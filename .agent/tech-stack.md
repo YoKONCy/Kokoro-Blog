@@ -16,5 +16,16 @@
 
 Astro 6 默认 `static`（SSG），需要 SSR 的页面单独标注 `export const prerender = false`。
 
-- **SSG 页面**：首页、文章详情、文章列表、标签页、关于页、友链页
-- **SSR 页面**：搜索结果、API 端点、管理后台、动态 OG Image
+> ⚠️ Phase 5 已将内容管理迁移到 D1，所有内容页均改为 SSR。
+
+- **SSG 页面**：RSS、静态资源
+- **SSR 页面**：首页、文章列表/详情、标签页、关于页、搜索、API 端点、管理后台
+
+## 环境绑定获取方式
+
+Astro v6 弃用了 `Astro.locals.runtime.env`，统一使用 `cloudflare:workers` 模块：
+
+```typescript
+import { getDB } from '@/lib/cloudflare/env';
+const db = await getDB();
+```

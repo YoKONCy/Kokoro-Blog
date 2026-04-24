@@ -56,6 +56,33 @@
 | created_at | DATETIME | 创建时间 |
 | expires_at | DATETIME | 过期时间 |
 
+### posts — 文章（Phase 5 新增）
+
+> 替代 Content Collections，所有文章数据存入 D1。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | TEXT PK | randomblob 生成 |
+| slug | TEXT UNIQUE | URL 路径标识，如 `2026/hello-world` |
+| title | TEXT | 文章标题 |
+| description | TEXT | 摘要 / SEO 描述 |
+| content | TEXT | Markdown 原文 |
+| hero_image | TEXT | 封面图 URL（R2 路径） |
+| tags | TEXT | JSON 数组，如 `'["astro","blog"]'` |
+| status | TEXT | draft / published |
+| created_at | DATETIME | 创建时间 |
+| updated_at | DATETIME | 更新时间 |
+
+索引：`(status, created_at)`, `(slug)`
+
+### site_settings — 站点设置（Phase 5 新增）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| key | TEXT PK | 配置键，如 `site.title`、`hero.title`、`about.content` |
+| value | TEXT | 配置值 |
+| updated_at | DATETIME | 更新时间 |
+
 ---
 
 ## 搜索方案（D1 FTS5）
@@ -91,4 +118,5 @@ export async function searchPosts(db: D1Database, query: string, limit = 20) {
 
 ### 索引同步
 
-构建后执行 `bun run sync-index`，将所有文章内容同步到 FTS5 表。
+创建/更新/删除文章时，D1 CRUD 函数自动同步 FTS5 索引（`syncPostFts`）。
+迁移工具：`db/migrate-posts.ts` 可将 Content Collections Markdown 文件生成 SQL 插入语句。

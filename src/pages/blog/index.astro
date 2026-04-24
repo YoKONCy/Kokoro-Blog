@@ -1,18 +1,36 @@
 ---
 /**
  * 文章列表页 — /blog
+ * 从 D1 查询已发布文章（替代 Content Collections）
  */
-import { getCollection } from 'astro:content';
+export const prerender = false;
+
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { t } from '@/lib/i18n';
 import { formatDate } from '@/lib/date';
 import { getReadingTime } from '@/lib/utils';
+import { getPublishedPosts, parseTags } from '@/lib/cloudflare/d1';
+import { getDB } from '@/lib/cloudflare/env';
 
-const posts = (await getCollection('blog', ({ data }) => !data.draft))
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+let posts: Awaited<ReturnType<typeof getPublishedPosts>> = [];
+let allTags: string[] = [];
 
-// 提取所有标签（去重）
-const allTags = [...new Set(posts.flatMap(post => post.data.tags))];
+try {
+  const db = await getDB();
+  if (db) {
+    posts = await getPublishedPosts(db);
+    // 提取所有标签（去重）
+    const tagSet = new Set<string>();
+    for (const post of posts) {
+      for (const tag of parseTags(post.tags)) {
+        tagSet.add(tag);
+      }
+    }
+    allTags = [...tagSet];
+  }
+} catch (e) {
+  console.error('[blog] 加载文章列表失败:', e);
+}
 ---
 
 <BaseLayout title={t('nav.blog')} description="全部文章列表">
@@ -32,27 +50,29 @@ const allTags = [...new Set(posts.flatMap(post => post.data.tags))];
 
     <!-- 文章列表 -->
     <div class="post-list stagger">
-      {posts.map(post => (
-        <a href={`/blog/${post.id}`} class="post-item glow-card">
-          <div class="post-item-main">
-            <h2 class="post-item-title">{post.data.title}</h2>
-            <p class="post-item-desc">{post.data.description}</p>
-            <div class="post-item-tags">
-              {post.data.tags.map(tag => (
-                <span class="tag-badge">{tag}</span>
-              ))}
+      {posts.map(post => {
+        const tags = parseTags(post.tags);
+        return (
+          <a href={`/blog/${post.slug}`} class="post-item glow-card">
+            <div class="post-item-main">
+              <h2 class="post-item-title">{post.title}</h2>
+              <p class="post-item-desc">{post.description}</p>
+              <div class="post-item-tags">
+                {tags.map(tag => (
+                  <span class="tag-badge">{tag}</span>
+                ))}
+              </div>
             </div>
-          </div>
-          <div class="post-item-meta">
-            <time datetime={post.data.pubDate.toISOString()}>
-              {formatDate(post.data.pubDate)}
-            </time>
-            <span class="meta-dot">·</span>
-            <span>{getReadingTime(post.body ?? '')} {t('blog.readingTime')}</span>
-          </div>
-        </a>
-      ))}
+            <div class="post-item-meta">
+              <time datetime={post.created_at}>
+                {formatDate(new Date(post.created_at))}
+              </time>
+              <span class="meta-dot">·</span>
+              <span>{getReadingTime(post.description || '')} {t('blog.readingTime')}</span>
+            </div>
+          </a>
+        );
+      })}
     </div>
   </div>
 </BaseLayout>
-

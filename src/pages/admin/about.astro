@@ -1,0 +1,167 @@
+---
+/**
+ * 关于页管理 — /admin/about
+ * 编辑关于页的标题、头像和 Markdown 内容
+ */
+export const prerender = false;
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { loadSiteConfig } from '@/lib/settings';
+import { setSettings } from '@/lib/cloudflare/d1';
+import { getDB } from '@/lib/cloudflare/env';
+import { renderMarkdown } from '@/lib/markdown';
+
+const db = await getDB();
+
+let message = '';
+let messageType = '';
+
+// 处理保存
+if (Astro.request.method === 'POST' && db) {
+  try {
+    const formData = await Astro.request.formData();
+    const settings: Record<string, string> = {};
+
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith('setting.')) {
+        settings[key.replace('setting.', '')] = value.toString();
+      }
+    }
+
+    if (Object.keys(settings).length > 0) {
+      await setSettings(db, settings);
+      message = '关于页已保存';
+      messageType = 'success';
+    }
+  } catch (e) {
+    message = '保存失败';
+    messageType = 'error';
+    console.error('[admin/about] 保存失败:', e);
+  }
+}
+
+// 加载当前配置
+const config = await loadSiteConfig(db ?? null);
+const aboutTitle = config.get('about.title');
+const aboutContent = config.get('about.content');
+const aboutAvatar = config.get('about.avatar');
+
+// 渲染预览
+const { html: previewHtml } = await renderMarkdown(aboutContent);
+---
+
+<AdminLayout title="关于页管理" description="编辑关于页内容">
+  <div class="admin-page">
+    <div class="admin-page-header">
+      <h1 class="admin-page-title">👤 关于页管理</h1>
+      <div style="display:flex;gap:0.5rem">
+        <a href="/about" class="admin-btn admin-btn-sm admin-btn-ghost" target="_blank">🔗 查看前台</a>
+      </div>
+    </div>
+
+    {message && (
+      <div class={`admin-toast admin-toast-${messageType}`}>
+        {messageType === 'success' ? '✅' : '❌'} {message}
+      </div>
+    )}
+
+    <form method="POST">
+      <div class="admin-settings-panel">
+        <h3 class="admin-settings-panel-title">📝 基本信息</h3>
+        <div class="admin-form-row">
+          <div class="admin-form-group">
+            <label class="admin-form-label" for="about-title">标题</label>
+            <input type="text" id="about-title" name="setting.about.title" class="admin-form-input" value={aboutTitle} placeholder="关于我" />
+          </div>
+          <div class="admin-form-group">
+            <label class="admin-form-label" for="about-avatar">头像 URL</label>
+            <input type="url" id="about-avatar" name="setting.about.avatar" class="admin-form-input" value={aboutAvatar} placeholder="https://..." />
+            <p class="admin-form-help">留空则不显示头像</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-settings-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <h3 class="admin-settings-panel-title" style="margin-bottom:0">✍️ 内容编辑（Markdown）</h3>
+          <button type="button" id="toggle-about-preview" class="admin-btn admin-btn-sm admin-btn-ghost">
+            👁 预览
+          </button>
+        </div>
+        <div class="admin-form-group">
+          <textarea
+            id="about-content"
+            name="setting.about.content"
+            class="admin-form-textarea"
+            rows="12"
+            style="font-family:var(--font-mono,monospace);font-size:0.875rem;min-height:300px"
+            placeholder="使用 Markdown 语法编写关于页内容…"
+          >{aboutContent}</textarea>
+          <div id="about-preview" class="admin-about-preview post-content prose" style="display:none;min-height:300px;border:1px solid var(--color-border);border-radius:var(--radius-md);padding:1rem;background:var(--color-bg-elevated)"></div>
+          <p class="admin-form-help">支持标准 Markdown、GFM 表格、:::note 提示框</p>
+        </div>
+      </div>
+
+      <div class="admin-settings-actions">
+        <button type="submit" class="admin-btn admin-btn-primary" style="width:auto">
+          💾 保存关于页
+        </button>
+      </div>
+    </form>
+  </div>
+</AdminLayout>
+
+<script>
+document.addEventListener('astro:page-load', () => {
+  const toggleBtn = document.getElementById('toggle-about-preview');
+  const previewEl = document.getElementById('about-preview');
+  const ta = document.getElementById('about-content') as HTMLTextAreaElement | null;
+  let isPreviewing = false;
+
+  if (toggleBtn && previewEl && ta) {
+    toggleBtn.addEventListener('click', async () => {
+      isPreviewing = !isPreviewing;
+      if (isPreviewing) {
+        ta.style.display = 'none';
+        previewEl.style.display = 'block';
+        toggleBtn.textContent = '✏️ 编辑';
+        previewEl.innerHTML = '<p style="color:var(--color-text-muted)">正在渲染预览...</p>';
+        
+        try {
+          const res = await fetch('/api/admin/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ markdown: ta.value })
+          });
+          const data = await res.json();
+          if (data.success) {
+            previewEl.innerHTML = data.data;
+          } else {
+            previewEl.innerHTML = `<p style="color:red">渲染失败: ${data.error}</p>`;
+          }
+        } catch {
+          previewEl.innerHTML = '<p style="color:red">网络错误，渲染失败</p>';
+        }
+      } else {
+        ta.style.display = '';
+        previewEl.style.display = 'none';
+        toggleBtn.textContent = '👁 预览';
+      }
+    });
+
+    // 快捷键支持
+    ta.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = ta.selectionStart;
+        const end = ta.selectionEnd;
+        ta.setSelectionRange(s, end);
+        if (!document.execCommand('insertText', false, '  ')) {
+          ta.value = ta.value.substring(0, s) + '  ' + ta.value.substring(end);
+        }
+        ta.selectionStart = ta.selectionEnd = s + 2;
+      }
+    });
+  }
+});
+</script>

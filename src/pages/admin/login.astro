@@ -1,0 +1,276 @@
+---
+/**
+ * 管理后台登录页 — /admin/login
+ *
+ * 公开页面，不经过 middleware 鉴权拦截。
+ * GET  → 渲染登录表单
+ * POST → 验证密码 → 创建 session → Set-Cookie → 302 到 /admin
+ */
+export const prerender = false;
+
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { createSession } from "@/lib/cloudflare/d1";
+import { getCloudflareEnv } from "@/lib/cloudflare/env";
+import type { D1Database } from "@cloudflare/workers-types";
+
+let errorMessage = "";
+
+if (Astro.request.method === "POST") {
+  try {
+    const formData = await Astro.request.formData();
+    const password = formData.get("password")?.toString() ?? "";
+
+    // 从 D1 读取管理员密码哈希
+    const cfEnv = await getCloudflareEnv();
+    const db = cfEnv?.DB as D1Database;
+    
+    if (!db) {
+      errorMessage = '服务端未配置 D1 数据库';
+    } else {
+      const row = await db.prepare("SELECT value FROM site_settings WHERE key = 'admin.password'").first<{value: string}>();
+      const adminPasswordHash = row?.value;
+
+      if (!adminPasswordHash) {
+        errorMessage = '系统尚未初始化，请先访问 /setup';
+      } else {
+        // 对输入密码进行 SHA-256 哈希
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const inputHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        if (inputHash === adminPasswordHash) {
+          // 密码正确：生成 session token 并写入 D1
+          const token = crypto.randomUUID();
+          await createSession(db, token, 7); // 7 天有效期
+
+          // Set-Cookie 并重定向到后台首页
+          const cookie = [
+            `session=${encodeURIComponent(token)}`,
+            'Path=/',
+            'HttpOnly',
+            'SameSite=Strict',
+            'Max-Age=604800', // 7 天
+          ];
+
+          if (Astro.url.protocol === 'https:') {
+            cookie.push('Secure');
+          }
+
+          return new Response(null, {
+            status: 302,
+            headers: {
+              Location: '/admin',
+              'Set-Cookie': cookie.join('; '),
+            },
+          });
+        } else {
+          errorMessage = '密码错误，请重试';
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[admin/login] 登录失败:", err);
+    errorMessage = "登录失败，请稍后重试";
+  }
+}
+
+// 如果已登录，直接跳转后台
+const cookieHeader = Astro.request.headers.get("cookie");
+if (cookieHeader) {
+  const match = cookieHeader.match(/(?:^|;\s*)session=([^;]*)/);
+  if (match) {
+    try {
+      const { getDB } = await import("@/lib/cloudflare/env");
+      const db = await getDB();
+      if (db) {
+        const { validateSession } = await import("@/lib/cloudflare/d1");
+        const valid = await validateSession(db, decodeURIComponent(match[1]));
+        if (valid) {
+          return Astro.redirect("/admin", 302);
+        }
+      }
+    } catch {
+      // 忽略，继续显示登录页
+    }
+  }
+}
+---
+
+<BaseLayout title="管理员登录" description="管理后台登录">
+  <div class="admin-login-page">
+    <div class="admin-login-card">
+      <!-- Header -->
+      <div class="admin-login-header">
+        <div class="admin-login-icon">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <h1 class="admin-login-title">管理后台</h1>
+        <p class="admin-login-subtitle">请输入管理员密码以继续</p>
+      </div>
+
+      <!-- 错误提示 -->
+      {
+        errorMessage && (
+          <div class="admin-login-error" role="alert">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" x2="12" y1="8" y2="12" />
+              <line x1="12" x2="12.01" y1="16" y2="16" />
+            </svg>
+            {errorMessage}
+          </div>
+        )
+      }
+
+      <!-- 登录表单 -->
+      <form method="POST" id="admin-login-form">
+        <div class="admin-form-group">
+          <label for="admin-password" class="admin-form-label">管理员密码</label
+          >
+          <div class="admin-password-wrapper">
+            <input
+              type="password"
+              id="admin-password"
+              name="password"
+              class:list={["admin-form-input", { "is-error": errorMessage }]}
+              placeholder="请输入密码"
+              required
+              autofocus
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="admin-password-toggle"
+              id="password-toggle"
+              aria-label="切换密码可见性"
+            >
+              <svg
+                id="eye-open"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg
+                id="eye-closed"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="display:none"
+              >
+                <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+                <path
+                  d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
+                ></path>
+                <path
+                  d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"
+                ></path>
+                <line x1="2" x2="22" y1="2" y2="22"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          class="admin-btn admin-btn-primary"
+          id="admin-login-btn"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" x2="3" y1="12" y2="12"></line>
+          </svg>
+          登录
+        </button>
+      </form>
+
+      <div class="admin-login-footer">
+        <a href="/">← 返回首页</a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  /**
+   * 登录页客户端交互
+   * - 密码可见性切换
+   * - Enter 键提交
+   */
+  document.addEventListener("astro:page-load", () => {
+    const toggle = document.getElementById("password-toggle");
+    const input = document.getElementById(
+      "admin-password",
+    ) as HTMLInputElement | null;
+    const eyeOpen = document.getElementById("eye-open");
+    const eyeClosed = document.getElementById("eye-closed");
+
+    if (toggle && input && eyeOpen && eyeClosed) {
+      toggle.addEventListener("click", () => {
+        const isPassword = input.type === "password";
+        input.type = isPassword ? "text" : "password";
+        eyeOpen.style.display = isPassword ? "none" : "block";
+        eyeClosed.style.display = isPassword ? "block" : "none";
+      });
+    }
+
+    // 提交时禁用按钮防重复
+    const form = document.getElementById(
+      "admin-login-form",
+    ) as HTMLFormElement | null;
+    const btn = document.getElementById(
+      "admin-login-btn",
+    ) as HTMLButtonElement | null;
+    if (form && btn) {
+      form.addEventListener("submit", () => {
+        btn.disabled = true;
+        btn.textContent = "登录中…";
+      });
+    }
+  });
+</script>

@@ -1,91 +1,77 @@
 # 内容管理 + Markdown 渲染
 
-## Content Collections（Astro 6）
+## 内容存储（D1 数据库）
 
-配置文件：`src/content.config.ts`（注意不是 `src/content/config.ts`，Astro 6 已移除旧路径）
+> ⚠️ Phase 5 已将内容管理从 Content Collections 迁移到 D1 数据库。
+> `src/content/` 目录保留用于构建时类型生成，但前台页面不再使用 `getCollection()`。
 
-使用 glob loader 加载文章：
-
-```typescript
-import { defineCollection, z } from 'astro:content';
-import { glob } from 'astro/loaders';
-
-const blog = defineCollection({
-  loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/blog' }),
-  schema: z.object({
-    title: z.string(),
-    description: z.string().max(160),
-    pubDate: z.coerce.date(),
-    updatedDate: z.coerce.date().optional(),
-    heroImage: z.string().optional(),
-    tags: z.array(z.string()).default([]),
-    category: z.string().optional(),
-    draft: z.boolean().default(false),
-    toc: z.boolean().default(true),
-  }),
-});
-```
-
-## 文章文件组织
-
-```
-src/content/blog/
-├── 2026/
-│   ├── my-first-post/          # 文件夹形式（有多个资源时）
-│   │   ├── index.md
-│   │   ├── hero.webp
-│   │   └── diagram.svg
-│   └── quick-note.md           # 单文件形式（简短文章）
-└── _drafts/                    # 草稿存放
-    └── work-in-progress.md
-```
-
-## Markdown 插件链
+所有文章存储在 D1 `posts` 表中，通过 `src/lib/cloudflare/d1.ts` 的 CRUD 函数访问：
 
 ```typescript
-// astro.config.mjs → markdown 配置
-markdown: {
-  syntaxHighlight: 'shiki',
-  shikiConfig: {
-    themes: { light: 'github-light', dark: 'tokyo-night' },
-  },
-  remarkPlugins: [
-    remarkMath,              // 数学公式
-    remarkEmoji,             // Emoji 短码
-    remarkReadingTime,       // 阅读时间自动计算
-    remarkCustomBlocks,      // 自定义告示块（tip/warning/info）
-  ],
-  rehypePlugins: [
-    rehypeKatex,             // 数学公式渲染
-    rehypeSlug,              // 标题 anchor
-    rehypeAutolinkHeadings,  // 标题自动链接
-    rehypeExternalLinks,     // 外链新窗口 + nofollow
-    rehypePrettyCode,        // 代码块增强（行号、高亮行、标题）
-  ],
-}
+import { getPublishedPosts, getPublishedPostBySlug, parseTags } from '@/lib/cloudflare/d1';
+import { getDB } from '@/lib/cloudflare/env';
+
+const db = await getDB();
+const posts = await getPublishedPosts(db);
+const post = await getPublishedPostBySlug(db, slug);
 ```
 
-## MDX 自定义组件映射
+### 文章数据模型
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| slug | TEXT | URL 标识，如 `2026/hello-world` |
+| title | TEXT | 标题 |
+| description | TEXT | SEO 摘要 |
+| content | TEXT | Markdown 原文 |
+| hero_image | TEXT | 封面图（R2 URL） |
+| tags | TEXT | JSON 数组 `'["astro","blog"]'` |
+| status | TEXT | `draft` / `published` |
+
+## Markdown 运行时渲染
+
+文章 Markdown 不再由 Astro 构建时渲染，而是通过 `unified` 管线在 SSR 时实时处理：
 
 ```typescript
-// src/lib/markdown/components.ts
-export const mdxComponents = {
-  // HTML 元素覆盖
-  img: CustomImage,         // 图片灯箱 + 懒加载
-  a: SmartLink,             // 内链/外链自动区分
-  pre: CodeBlock,           // 增强代码块（复制按钮、语言标签）
-  blockquote: StyledQuote,  // 美化引用块
-  table: ResponsiveTable,   // 响应式表格包裹
+// src/lib/markdown.ts
+import { renderMarkdown } from '@/lib/markdown';
 
-  // 自定义组件（MDX 中直接使用）
-  Callout: CalloutBox,      // 提示框
-  LinkCard: LinkPreview,    // 链接卡片预览
+const html = await renderMarkdown(post.content);
+```
 
-  // 【预留】
-  AudioPlayer: null,
-  VideoPlayer: null,
-  ThreeScene: null,
-};
+### 渲染管线插件
+
+```typescript
+// unified 管线配置
+remarkPlugins: [
+  remarkMath,              // 数学公式
+  remarkGfm,               // GitHub Flavored Markdown
+],
+rehypePlugins: [
+  rehypeSlug,              // 标题 anchor
+  rehypeAutolinkHeadings,  // 标题自动链接
+  rehypeKatex,             // 数学公式渲染
+  rehypePrettyCode,        // 代码块增强（行号、高亮行）
+]
+```
+
+## Content Collections（遗留，仅类型生成）
+
+配置文件：`src/content.config.ts`
+
+Content Collections 仍保留，但仅用于 Astro 构建时的类型生成。
+前台页面和管理后台均直接查询 D1 `posts` 表。
+
+## 站点配置（site_settings）
+
+关于页、首页 Hero、站点标题等动态配置存储在 `site_settings` 表中：
+
+```typescript
+import { loadSiteConfig } from '@/lib/settings';
+
+const config = await loadSiteConfig(db);
+const title = config.get('site.title');
+const aboutContent = config.get('about.content');
 ```
 
 ## 中文排版要点（prose.css）

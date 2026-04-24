@@ -16,12 +16,14 @@
 
 ```typescript
 // 1. Astro/框架
-import { getCollection } from 'astro:content';
+import { defineMiddleware } from 'astro:middleware';
 // 2. 第三方库
 import sanitizeHtml from 'sanitize-html';
 // 3. 内部模块 — 按层级
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostCard from '@/components/blog/PostCard.astro';
+import { getPublishedPosts, parseTags } from '@/lib/cloudflare/d1';
+import { getDB } from '@/lib/cloudflare/env';
 import { formatDate } from '@/lib/date';
 import type { BlogPost } from '@/types';
 ```
@@ -52,11 +54,18 @@ import type { BlogPost } from '@/types';
 ```typescript
 export const prerender = false;
 
-export const GET: APIRoute = async ({ params, locals }) => {
+import type { APIRoute } from 'astro';
+import { getDB } from '@/lib/cloudflare/env';
+
+export const GET: APIRoute = async ({ params }) => {
+  const db = await getDB();
+  if (!db) return Response.json({ success: false, error: 'D1 不可用' }, { status: 503 });
   // 统一响应格式
   return Response.json({ success: true, data: ... });
 };
 ```
+
+> ⚠️ Astro v6 已弃用 `locals.runtime.env`，一律使用 `getDB()` / `getCloudflareEnv()` 获取环境绑定。
 
 ## CSS 规范
 

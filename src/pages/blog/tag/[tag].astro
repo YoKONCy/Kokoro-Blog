@@ -1,30 +1,33 @@
 ---
 /**
  * 标签页 — /blog/tag/[tag]
+ * 从 D1 查询指定标签的已发布文章（替代 Content Collections）
  */
-import { getCollection } from 'astro:content';
+export const prerender = false;
+
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { t } from '@/lib/i18n';
 import { formatDate } from '@/lib/date';
-import { getReadingTime } from '@/lib/utils';
+import { getPublishedPostsByTag, getAllTags, parseTags } from '@/lib/cloudflare/d1';
+import { getDB } from '@/lib/cloudflare/env';
 
-export async function getStaticPaths() {
-  const posts = await getCollection('blog', ({ data }) => !data.draft);
-  const allTags = [...new Set(posts.flatMap(post => post.data.tags))];
-
-  return allTags.map(tag => ({
-    params: { tag },
-    props: {
-      tag,
-      posts: posts
-        .filter(post => post.data.tags.includes(tag))
-        .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()),
-      allTags,
-    },
-  }));
+const tag = Astro.params.tag;
+if (!tag) {
+  return Astro.redirect('/blog', 302);
 }
 
-const { tag, posts, allTags } = Astro.props;
+let posts: Awaited<ReturnType<typeof getPublishedPostsByTag>> = [];
+let allTags: string[] = [];
+
+try {
+  const db = await getDB();
+  if (db) {
+    posts = await getPublishedPostsByTag(db, tag);
+    allTags = await getAllTags(db);
+  }
+} catch (e) {
+  console.error('[blog/tag] 加载文章列表失败:', e);
+}
 ---
 
 <BaseLayout title={`#${tag}`} description={`标签「${tag}」下的所有文章`}>
@@ -48,25 +51,27 @@ const { tag, posts, allTags } = Astro.props;
 
     <!-- 文章列表 -->
     <div class="post-list stagger">
-      {posts.map(post => (
-        <a href={`/blog/${post.id}`} class="post-item glow-card">
-          <div class="post-item-main">
-            <h2 class="post-item-title">{post.data.title}</h2>
-            <p class="post-item-desc">{post.data.description}</p>
-            <div class="post-item-tags">
-              {post.data.tags.map(tagName => (
-                <span class:list={['tag-badge', { 'tag-badge-active': tagName === tag }]}>{tagName}</span>
-              ))}
+      {posts.map(post => {
+        const tags = parseTags(post.tags);
+        return (
+          <a href={`/blog/${post.slug}`} class="post-item glow-card">
+            <div class="post-item-main">
+              <h2 class="post-item-title">{post.title}</h2>
+              <p class="post-item-desc">{post.description}</p>
+              <div class="post-item-tags">
+                {tags.map(tagName => (
+                  <span class:list={['tag-badge', { 'tag-badge-active': tagName === tag }]}>{tagName}</span>
+                ))}
+              </div>
             </div>
-          </div>
-          <div class="post-item-meta">
-            <time datetime={post.data.pubDate.toISOString()}>
-              {formatDate(post.data.pubDate)}
-            </time>
-          </div>
-        </a>
-      ))}
+            <div class="post-item-meta">
+              <time datetime={post.created_at}>
+                {formatDate(new Date(post.created_at))}
+              </time>
+            </div>
+          </a>
+        );
+      })}
     </div>
   </div>
 </BaseLayout>
-

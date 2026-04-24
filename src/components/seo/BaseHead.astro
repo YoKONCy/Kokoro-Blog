@@ -61,15 +61,24 @@ const canonical = canonicalUrl || Astro.url.href;
 <!-- Favicon -->
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
+<!-- 首屏背景图预加载优化 -->
+<link rel="preload" href="/images/kokoro1.webp" as="image" />
+
 <!-- 字体预加载 -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-<link
-  href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&family=Ma+Shan+Zheng&display=swap"
-  rel="stylesheet"
-/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-lite-webfont@1.1.0/style.css" />
+
+<!-- 优化 1：精简 Google Fonts 字重并使用预加载 -->
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Quicksand:wght@400;600&family=Fira+Code:wght@400;500&family=Ma+Shan+Zheng&display=swap" as="style" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Quicksand:wght@400;600&family=Fira+Code:wght@400;500&family=Ma+Shan+Zheng&display=swap" />
+
+<!-- 优化 2：LXGW WenKai 中文字体体积巨大（4-8MB），改为异步加载避免阻塞首屏渲染 -->
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-lite-webfont@1.1.0/style.css" as="style" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-lite-webfont@1.1.0/style.css" media="print" onload="this.media='all'" />
+<noscript>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-lite-webfont@1.1.0/style.css" />
+</noscript>
 
 <!-- 暗色模式初始化（防闪烁 + View Transitions 兼容） -->
 <script is:inline>

@@ -1,0 +1,573 @@
+---
+/**
+ * 文章管理页面 — /admin/posts
+ * 功能：文章列表 + 新建/编辑文章（Markdown 编辑器）
+ */
+export const prerender = false;
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { getAllPosts, getPostById, parseTags } from '@/lib/cloudflare/d1';
+import { getDB } from '@/lib/cloudflare/env';
+import { formatDate } from '@/lib/date';
+import { renderMarkdown } from '@/lib/markdown';
+
+const db = await getDB();
+let posts: Awaited<ReturnType<typeof getAllPosts>> = [];
+
+// 是否进入编辑模式（通过 ?edit=<id> 或 ?new=1）
+const url = Astro.url;
+const editId = url.searchParams.get('edit');
+const isNew = url.searchParams.get('new') === '1';
+let editPost: Awaited<ReturnType<typeof getPostById>> | null = null;
+
+if (db) {
+  try {
+    posts = await getAllPosts(db);
+    if (editId) {
+      editPost = await getPostById(db, editId);
+    }
+  } catch (e) {
+    console.error('[admin/posts] 加载失败:', e);
+  }
+}
+
+const isEditor = isNew || !!editPost;
+---
+
+<AdminLayout title="文章管理" description="管理站点文章">
+  <div class="admin-page">
+    <div class="admin-page-header">
+      <h1 class="admin-page-title">📄 文章管理</h1>
+      <div style="display:flex;gap:0.5rem">
+        {isEditor ? (
+          <a href="/admin/posts" class="admin-btn admin-btn-sm admin-btn-ghost">← 返回列表</a>
+        ) : (
+          <a href="/admin/posts?new=1" class="admin-btn admin-btn-sm admin-btn-primary" style="width:auto">✏️ 新建文章</a>
+        )}
+      </div>
+    </div>
+
+    {/* Toast 占位 */}
+    <div id="posts-toast"></div>
+
+    {isEditor ? (
+      <!-- ===== 编辑器模式 ===== -->
+      <div class="admin-editor-container" id="editor-container">
+        <form id="post-form" class="admin-editor-form">
+          <input type="hidden" id="post-id" value={editPost?.id ?? ''} />
+
+          {/* 顶部元信息栏 */}
+          <div class="admin-editor-meta">
+            <div class="admin-form-group" style="flex:2">
+              <label class="admin-form-label" for="post-title">标题 *</label>
+              <input
+                type="text"
+                id="post-title"
+                class="admin-form-input"
+                placeholder="文章标题"
+                value={editPost?.title ?? ''}
+                required
+              />
+            </div>
+            <div class="admin-form-group" style="flex:1">
+              <label class="admin-form-label" for="post-slug">Slug *</label>
+              <input
+                type="text"
+                id="post-slug"
+                class="admin-form-input"
+                placeholder="2026/my-post"
+                value={editPost?.slug ?? ''}
+                required
+              />
+              <p class="admin-form-help">URL 路径，如 2026/hello-world</p>
+            </div>
+          </div>
+
+          <div class="admin-editor-meta">
+            <div class="admin-form-group" style="flex:2">
+              <label class="admin-form-label" for="post-desc">摘要</label>
+              <input
+                type="text"
+                id="post-desc"
+                class="admin-form-input"
+                placeholder="SEO 摘要描述（可选）"
+                value={editPost?.description ?? ''}
+              />
+            </div>
+            <div class="admin-form-group" style="flex:1">
+              <label class="admin-form-label" for="post-tags">标签</label>
+              <input
+                type="text"
+                id="post-tags"
+                class="admin-form-input"
+                placeholder="用逗号分隔，如 astro,blog"
+                value={editPost ? parseTags(editPost.tags).join(', ') : ''}
+              />
+            </div>
+          </div>
+
+          <div class="admin-editor-meta">
+            <div class="admin-form-group" style="flex:2">
+              <label class="admin-form-label" for="post-hero">封面图 URL</label>
+              <div class="admin-editor-upload-row">
+                <input
+                  type="text"
+                  id="post-hero"
+                  class="admin-form-input"
+                  placeholder="封面图链接（可留空或上传）"
+                  value={editPost?.hero_image ?? ''}
+                />
+                <label class="admin-btn admin-btn-sm admin-btn-ghost admin-upload-btn" for="upload-input">
+                  📎 上传
+                </label>
+                <input type="file" id="upload-input" accept="image/*" style="display:none" />
+              </div>
+            </div>
+            <div class="admin-form-group" style="flex:1">
+              <label class="admin-form-label" for="post-status">状态</label>
+              <select id="post-status" class="admin-filter-select" style="width:100%;padding:0.75rem 1rem;font-size:0.9375rem">
+                <option value="draft" selected={(!editPost || editPost.status === 'draft')}>草稿</option>
+                <option value="published" selected={editPost?.status === 'published'}>已发布</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Markdown 编辑器 + 预览 */}
+          <div class="admin-editor-body">
+            <div class="admin-editor-toolbar" id="editor-toolbar">
+              <button type="button" data-action="bold" title="加粗 (Ctrl+B)"><strong>B</strong></button>
+              <button type="button" data-action="italic" title="斜体 (Ctrl+I)"><em>I</em></button>
+              <button type="button" data-action="strikethrough" title="删除线">~S~</button>
+              <span class="admin-toolbar-sep"></span>
+              <button type="button" data-action="h2" title="二级标题">H2</button>
+              <button type="button" data-action="h3" title="三级标题">H3</button>
+              <span class="admin-toolbar-sep"></span>
+              <button type="button" data-action="ul" title="无序列表">• 列表</button>
+              <button type="button" data-action="ol" title="有序列表">1. 列表</button>
+              <button type="button" data-action="quote" title="引用">&gt; 引用</button>
+              <span class="admin-toolbar-sep"></span>
+              <button type="button" data-action="code" title="行内代码">`代码`</button>
+              <button type="button" data-action="codeblock" title="代码块">```块```</button>
+              <button type="button" data-action="link" title="链接">🔗 链接</button>
+              <button type="button" data-action="image" title="图片">🖼 图片</button>
+              <span class="admin-toolbar-sep"></span>
+              <button type="button" data-action="hr" title="分隔线">— 线</button>
+              <div class="admin-toolbar-right">
+                <button type="button" id="toggle-preview" title="切换预览">👁 预览</button>
+              </div>
+            </div>
+
+            <div class="admin-editor-panes">
+              <textarea
+                id="post-content"
+                class="admin-editor-textarea"
+                placeholder="在此输入 Markdown 内容..."
+              >{editPost?.content ?? ''}</textarea>
+              <div id="editor-preview" class="admin-editor-preview prose" style="display:none">
+                <p style="color:var(--color-text-muted)">点击「预览」按钮查看渲染效果</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 底部操作栏 */}
+          <div class="admin-editor-actions">
+            <span id="editor-status" class="admin-editor-status"></span>
+            <div style="display:flex;gap:0.5rem">
+              <button type="button" id="btn-save-draft" class="admin-btn admin-btn-sm admin-btn-ghost">
+                💾 存为草稿
+              </button>
+              <button type="submit" id="btn-publish" class="admin-btn admin-btn-sm admin-btn-success">
+                🚀 {editPost ? '保存' : '发布'}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    ) : (
+      <!-- ===== 文章列表模式 ===== -->
+      <div>
+        {/* 筛选栏 */}
+        <div class="admin-filter-bar">
+          <select id="status-filter" class="admin-filter-select">
+            <option value="all">全部状态</option>
+            <option value="published">已发布</option>
+            <option value="draft">草稿</option>
+          </select>
+          <span class="admin-page-info">共 {posts.length} 篇文章</span>
+        </div>
+
+        {posts.length === 0 ? (
+          <div class="admin-empty">
+            <p class="admin-empty-icon">📝</p>
+            <p>还没有文章，点击「新建文章」开始创作吧</p>
+          </div>
+        ) : (
+          <div class="admin-table-wrapper">
+            <table class="admin-table" id="posts-table">
+              <thead>
+                <tr>
+                  <th>标题</th>
+                  <th>Slug</th>
+                  <th>状态</th>
+                  <th>标签</th>
+                  <th>创建时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {posts.map(post => (
+                  <tr data-status={post.status}>
+                    <td>
+                      <span class="admin-table-title">{post.title}</span>
+                    </td>
+                    <td>
+                      <span class="admin-table-desc">{post.slug}</span>
+                    </td>
+                    <td>
+                      <span class={`admin-badge admin-badge-${post.status}`}>
+                        {post.status === 'published' ? '已发布' : '草稿'}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="admin-table-desc">
+                        {parseTags(post.tags).join(', ') || '-'}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="admin-table-time">{formatDate(new Date(post.created_at))}</span>
+                    </td>
+                    <td>
+                      <div class="admin-actions">
+                        <a href={`/blog/${post.slug}`} class="admin-action-btn" title="查看" target="_blank">
+                          👁
+                        </a>
+                        <a href={`/admin/posts?edit=${post.id}`} class="admin-action-btn" title="编辑">
+                          ✏️
+                        </a>
+                        <button class="admin-action-btn is-danger" data-delete-id={post.id} data-delete-title={post.title} title="删除">
+                          🗑
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+
+  {/* 删除确认弹窗 */}
+  <div id="delete-modal" class="admin-modal-overlay" style="display:none">
+    <div class="admin-modal">
+      <h3 class="admin-modal-title">确认删除</h3>
+      <p class="admin-modal-body" id="delete-modal-body">确定要删除文章吗？此操作不可撤销。</p>
+      <div class="admin-modal-actions">
+        <button class="admin-btn admin-btn-sm admin-btn-ghost" id="delete-cancel">取消</button>
+        <button class="admin-btn admin-btn-sm admin-btn-danger" id="delete-confirm">确认删除</button>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+document.addEventListener('astro:page-load', () => {
+  // ===== 通用工具 =====
+  function showToast(msg: string, type: string) {
+    const el = document.getElementById('posts-toast');
+    if (!el) return;
+    el.innerHTML = `<div class="admin-toast admin-toast-${type}">${msg}</div>`;
+    setTimeout(() => { el.innerHTML = ''; }, 4000);
+  }
+
+  // ===== 列表页：筛选 =====
+  const filter = document.getElementById('status-filter') as HTMLSelectElement | null;
+  if (filter) {
+    filter.addEventListener('change', () => {
+      const v = filter.value;
+      document.querySelectorAll<HTMLTableRowElement>('#posts-table tbody tr').forEach(row => {
+        row.style.display = (v === 'all' || row.dataset.status === v) ? '' : 'none';
+      });
+    });
+  }
+
+  // ===== 列表页：删除 =====
+  let deleteId: string | null = null;
+  const modal = document.getElementById('delete-modal');
+
+  document.querySelectorAll<HTMLElement>('[data-delete-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      deleteId = btn.dataset.deleteId ?? null;
+      const title = btn.dataset.deleteTitle ?? '';
+      const bodyEl = document.getElementById('delete-modal-body');
+      if (bodyEl) bodyEl.textContent = `确定要删除「${title}」吗？此操作不可撤销。`;
+      if (modal) modal.style.display = '';
+    });
+  });
+
+  document.getElementById('delete-cancel')?.addEventListener('click', () => {
+    if (modal) modal.style.display = 'none';
+  });
+
+  document.getElementById('delete-confirm')?.addEventListener('click', async () => {
+    if (modal) modal.style.display = 'none';
+    if (!deleteId) return;
+    try {
+      const res = await fetch(`/api/admin/posts?id=${deleteId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✅ 删除成功', 'success');
+        setTimeout(() => window.location.reload(), 600);
+      } else {
+        showToast('❌ ' + (data.error || '删除失败'), 'error');
+      }
+    } catch {
+      showToast('❌ 网络错误', 'error');
+    }
+  });
+
+  // ===== 编辑器模式 =====
+  const textarea = document.getElementById('post-content') as HTMLTextAreaElement | null;
+  if (!textarea) return; // 列表模式，不需要初始化编辑器
+
+  // --- Markdown 工具栏（事件委托） ---
+  document.getElementById('editor-toolbar')?.addEventListener('click', (e: Event) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
+    if (!btn) return;
+    e.preventDefault();
+    applyMarkdown(btn.dataset.action ?? '');
+  });
+
+  function applyMarkdown(action: string) {
+    const ta = document.getElementById('post-content') as HTMLTextAreaElement | null;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = ta.value.substring(start, end);
+    const before = ta.value.substring(0, start);
+    const after = ta.value.substring(end);
+    let insert = '';
+    let cursorOffset = 0;
+
+    switch (action) {
+      case 'bold':
+        insert = `**${selected || '粗体文字'}**`;
+        cursorOffset = selected ? insert.length : 2;
+        break;
+      case 'italic':
+        insert = `*${selected || '斜体文字'}*`;
+        cursorOffset = selected ? insert.length : 1;
+        break;
+      case 'strikethrough':
+        insert = `~~${selected || '删除线文字'}~~`;
+        cursorOffset = selected ? insert.length : 2;
+        break;
+      case 'h2':
+        insert = `\n## ${selected || '二级标题'}\n`;
+        cursorOffset = 4;
+        break;
+      case 'h3':
+        insert = `\n### ${selected || '三级标题'}\n`;
+        cursorOffset = 5;
+        break;
+      case 'ul':
+        insert = `\n- ${selected || '列表项'}\n`;
+        cursorOffset = 3;
+        break;
+      case 'ol':
+        insert = `\n1. ${selected || '列表项'}\n`;
+        cursorOffset = 4;
+        break;
+      case 'quote':
+        insert = `\n> ${selected || '引用内容'}\n`;
+        cursorOffset = 3;
+        break;
+      case 'code':
+        insert = `\`${selected || '代码'}\``;
+        cursorOffset = selected ? insert.length : 1;
+        break;
+      case 'codeblock':
+        insert = '\n```\n' + (selected || '代码块') + '\n```\n';
+        cursorOffset = 5;
+        break;
+      case 'link':
+        insert = `[${selected || '链接文字'}](https://)`;
+        cursorOffset = selected ? insert.length - 1 : 1;
+        break;
+      case 'image':
+        insert = `![${selected || '图片描述'}](https://)`;
+        cursorOffset = selected ? insert.length - 1 : 2;
+        break;
+      case 'hr':
+        insert = '\n---\n';
+        cursorOffset = insert.length;
+        break;
+      default:
+        return;
+    }
+
+    ta.focus({ preventScroll: true });
+    ta.setSelectionRange(start, end);
+    if (!document.execCommand('insertText', false, insert)) {
+      ta.value = before + insert + after;
+    }
+    const newPos = start + cursorOffset;
+    ta.setSelectionRange(newPos, newPos);
+  }
+
+  // --- 快捷键 ---
+  textarea.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'b') { e.preventDefault(); applyMarkdown('bold'); }
+      else if (e.key === 'i') { e.preventDefault(); applyMarkdown('italic'); }
+      else if (e.key === 's') { e.preventDefault(); savePost('current'); }
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      textarea.setSelectionRange(s, end);
+      if (!document.execCommand('insertText', false, '  ')) {
+        textarea.value = textarea.value.substring(0, s) + '  ' + textarea.value.substring(end);
+      }
+      textarea.selectionStart = textarea.selectionEnd = s + 2;
+    }
+  });
+
+  // --- 预览切换 ---
+  const previewEl = document.getElementById('editor-preview');
+  const toggleBtn = document.getElementById('toggle-preview');
+  let isPreviewing = false;
+
+  if (toggleBtn && previewEl) {
+    toggleBtn.addEventListener('click', async () => {
+      isPreviewing = !isPreviewing;
+      const ta = document.getElementById('post-content') as HTMLTextAreaElement;
+      if (isPreviewing) {
+        ta.style.display = 'none';
+        previewEl.style.display = 'block';
+        toggleBtn.textContent = '✏️ 编辑';
+        previewEl.innerHTML = '<p style="color:var(--color-text-muted)">正在渲染预览...</p>';
+        
+        try {
+          const res = await fetch('/api/admin/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ markdown: ta.value })
+          });
+          const data = await res.json();
+          if (data.success) {
+            previewEl.innerHTML = `<div class="prose">${data.data}</div>`;
+          } else {
+            previewEl.innerHTML = `<p style="color:red">渲染失败: ${data.error}</p>`;
+          }
+        } catch {
+          previewEl.innerHTML = '<p style="color:red">网络错误，渲染失败</p>';
+        }
+      } else {
+        ta.style.display = '';
+        previewEl.style.display = 'none';
+        toggleBtn.textContent = '👁 预览';
+      }
+    });
+  }
+
+  // --- 图片上传 ---
+  const uploadInput = document.getElementById('upload-input') as HTMLInputElement | null;
+  if (uploadInput) {
+    uploadInput.addEventListener('change', async () => {
+      const file = uploadInput.files?.[0];
+      if (!file) return;
+
+      const heroInput = document.getElementById('post-hero') as HTMLInputElement | null;
+      const statusEl = document.getElementById('editor-status');
+      if (statusEl) statusEl.textContent = '📤 上传中...';
+
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success) {
+          if (heroInput) heroInput.value = data.data.url;
+          if (statusEl) statusEl.textContent = '✅ 上传成功';
+          showToast('✅ 图片上传成功', 'success');
+        } else {
+          if (statusEl) statusEl.textContent = '❌ ' + data.error;
+          showToast('❌ ' + data.error, 'error');
+        }
+      } catch {
+        if (statusEl) statusEl.textContent = '❌ 上传失败';
+        showToast('❌ 网络错误', 'error');
+      }
+      uploadInput.value = '';
+    });
+  }
+
+  // --- 保存 / 发布 ---
+  document.getElementById('btn-save-draft')?.addEventListener('click', () => savePost('draft'));
+
+  document.getElementById('post-form')?.addEventListener('submit', (e: Event) => {
+    e.preventDefault();
+    savePost('current');
+  });
+
+  async function savePost(mode: string) {
+    const id = (document.getElementById('post-id') as HTMLInputElement)?.value ?? '';
+    const title = (document.getElementById('post-title') as HTMLInputElement)?.value.trim() ?? '';
+    const slug = (document.getElementById('post-slug') as HTMLInputElement)?.value.trim() ?? '';
+    const desc = (document.getElementById('post-desc') as HTMLInputElement)?.value.trim() ?? '';
+    const tags = (document.getElementById('post-tags') as HTMLInputElement)?.value.trim() ?? '';
+    const hero = (document.getElementById('post-hero') as HTMLInputElement)?.value.trim() ?? '';
+    const content = (document.getElementById('post-content') as HTMLTextAreaElement)?.value ?? '';
+    const statusSelect = document.getElementById('post-status') as HTMLSelectElement | null;
+    let status = statusSelect?.value ?? 'draft';
+
+    if (mode === 'draft') status = 'draft';
+
+    if (!title) { showToast('❌ 标题不能为空', 'error'); return; }
+    if (!slug) { showToast('❌ Slug 不能为空', 'error'); return; }
+
+    const tagsArr = tags ? tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [];
+
+    const body: Record<string, unknown> = {
+      title, slug, description: desc, content,
+      heroImage: hero || undefined,
+      tags: tagsArr, status,
+    };
+
+    const statusEl = document.getElementById('editor-status');
+    if (statusEl) statusEl.textContent = '💾 保存中...';
+
+    try {
+      const method = id ? 'PUT' : 'POST';
+      if (id) body.id = id;
+
+      const res = await fetch('/api/admin/posts', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        if (statusEl) statusEl.textContent = '✅ 已保存';
+        showToast('✅ ' + (id ? '更新成功' : '创建成功'), 'success');
+        if (!id && data.data?.id) {
+          setTimeout(() => {
+            window.location.href = '/admin/posts?edit=' + data.data.id;
+          }, 800);
+        }
+      } else {
+        if (statusEl) statusEl.textContent = '❌ 保存失败';
+        showToast('❌ ' + (data.error || '保存失败'), 'error');
+      }
+    } catch {
+      if (statusEl) statusEl.textContent = '❌ 网络错误';
+      showToast('❌ 网络错误', 'error');
+    }
+  }
+});
+</script>

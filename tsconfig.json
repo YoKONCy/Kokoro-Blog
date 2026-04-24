@@ -7,7 +7,10 @@
       "@components/*": ["src/components/*"],
       "@layouts/*": ["src/layouts/*"],
       "@lib/*": ["src/lib/*"]
-    }
+    },
+    "types": [
+      "@cloudflare/workers-types"
+    ]
   },
   "include": [
     ".astro/types.d.ts",

@@ -19,18 +19,29 @@ blog/
 │   ├── content/
 │   │   └── blog/2026/              # 按年份组织的博客文章
 │   ├── content.config.ts           # Astro 6 内容集合配置（glob loader）
-│   ├── layouts/                    # BaseLayout, PostLayout, AdminLayout
+│   ├── layouts/                    # BaseLayout (AdminLayout 待阶段 F 创建)
 │   ├── lib/
 │   │   ├── utils.ts, date.ts, seo.ts
+│   │   ├── settings.ts              # 站点配置加载器（D1 site_settings + 默认值）
+│   │   ├── markdown.ts              # 运行时 Markdown 渲染管线（unified）
 │   │   ├── i18n/                   # 国际化（index.ts, types.ts, locales/zh.ts）
-│   │   ├── markdown/               # 自定义渲染（plugins.ts, components.ts）
-│   │   └── cloudflare/             # CF 服务封装（d1.ts, kv.ts, r2.ts, search.ts）
+│   │   └── cloudflare/             # CF 服务封装
+│   │       ├── d1.ts               # D1 CRUD（posts/comments/links/views/settings/sessions）
+│   │       ├── env.ts              # 环境绑定 Helper（getDB/getCloudflareEnv）
+│   │       └── search.ts           # FTS5 搜索封装
 │   ├── pages/
 │   │   ├── index.astro             # 首页
-│   │   ├── about.astro, links.astro
-│   │   ├── blog/                   # 文章列表 + [...slug] 详情 + tag/[tag]
+│   │   ├── about.astro             # 关于页（site_settings 动态内容）
 │   │   ├── search.astro            # 搜索（SSR）
-│   │   ├── admin/                  # 管理后台（login, dashboard, comments, links, analytics）
+│   │   ├── blog/                   # 文章列表 + [...slug] 详情 + tag/[tag]
+│   │   ├── admin/                  # 管理后台
+│   │   │   ├── login.astro         # 登录
+│   │   │   ├── logout.ts           # 登出
+│   │   │   ├── index.astro         # 统计看板
+│   │   │   ├── comments.astro      # 评论管理
+│   │   │   ├── links.astro         # 友链管理
+│   │   │   ├── settings.astro      # 站点设置
+│   │   │   └── about.astro         # 关于页管理
 │   │   ├── rss.xml.ts
 │   │   └── api/                    # API 端点
 │   ├── middleware.ts               # 鉴权中间件
@@ -45,7 +56,8 @@ blog/
 │   │   ├── search.css              # 搜索页
 │   │   ├── cursor.css              # 自定义鼠标指针
 │   │   ├── toast.css               # Toast 通知气泡
-│   │   └── comments.css            # 评论区
+│   │   ├── comments.css            # 评论区
+│   │   └── admin.css               # 管理后台统一样式（复用主站 design tokens）
 │   └── types/                      # env.d.ts, cloudflare.d.ts
 ├── db/
 │   ├── schema.sql

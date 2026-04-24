@@ -1,0 +1,175 @@
+---
+/**
+ * 友链管理 — /admin/links
+ * 增/删/改友链
+ */
+export const prerender = false;
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { getLinks, createLink, updateLink, deleteLink } from '@/lib/cloudflare/d1';
+import { getDB } from '@/lib/cloudflare/env';
+
+const db = await getDB();
+
+let message = '';
+let messageType = '';
+
+// 处理 POST 操作
+if (Astro.request.method === 'POST' && db) {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('action')?.toString();
+
+    if (action === 'create') {
+      const name = formData.get('name')?.toString()?.trim();
+      const url = formData.get('url')?.toString()?.trim();
+      const avatar = formData.get('avatar')?.toString()?.trim();
+      const description = formData.get('description')?.toString()?.trim();
+
+      if (!name || !url) {
+        message = '名称和 URL 不能为空';
+        messageType = 'error';
+      } else {
+        await createLink(db, { name, url, avatar: avatar || undefined, description: description || undefined });
+        message = '友链添加成功';
+        messageType = 'success';
+      }
+    } else if (action === 'update') {
+      const id = formData.get('id')?.toString();
+      const name = formData.get('name')?.toString()?.trim();
+      const url = formData.get('url')?.toString()?.trim();
+      const avatar = formData.get('avatar')?.toString()?.trim();
+      const description = formData.get('description')?.toString()?.trim();
+
+      if (id && name && url) {
+        await updateLink(db, id, { name, url, avatar: avatar || undefined, description: description || undefined });
+        message = '友链更新成功';
+        messageType = 'success';
+      }
+    } else if (action === 'delete') {
+      const id = formData.get('id')?.toString();
+      if (id) {
+        await deleteLink(db, id);
+        message = '友链已删除';
+        messageType = 'success';
+      }
+    }
+  } catch (e) {
+    message = '操作失败';
+    messageType = 'error';
+  }
+}
+
+let links: Awaited<ReturnType<typeof getLinks>> = [];
+if (db) {
+  try {
+    links = await getLinks(db);
+  } catch (e) {
+    console.error('[admin/links] 加载友链失败:', e);
+  }
+}
+
+// 是否显示编辑表单
+const editId = Astro.url.searchParams.get('edit');
+const editLink = editId ? links.find(l => l.id === editId) : null;
+---
+
+<AdminLayout title="友链管理" description="管理站点友情链接">
+  <div class="admin-page">
+    <div class="admin-page-header">
+      <h1 class="admin-page-title">🔗 友链管理</h1>
+    </div>
+
+    {message && (
+      <div class={`admin-toast admin-toast-${messageType}`}>
+        {messageType === 'success' ? '✅' : '❌'} {message}
+      </div>
+    )}
+
+    <!-- 添加/编辑 表单 -->
+    <div class="admin-inline-form">
+      <h3 class="admin-settings-panel-title">
+        {editLink ? '✏️ 编辑友链' : '➕ 添加友链'}
+      </h3>
+      <form method="POST">
+        <input type="hidden" name="action" value={editLink ? 'update' : 'create'} />
+        {editLink && <input type="hidden" name="id" value={editLink.id} />}
+
+        <div class="admin-form-row">
+          <div class="admin-form-group">
+            <label class="admin-form-label" for="link-name">名称 *</label>
+            <input type="text" id="link-name" name="name" class="admin-form-input" required
+              value={editLink?.name ?? ''} placeholder="站点名称" />
+          </div>
+          <div class="admin-form-group">
+            <label class="admin-form-label" for="link-url">URL *</label>
+            <input type="url" id="link-url" name="url" class="admin-form-input" required
+              value={editLink?.url ?? ''} placeholder="https://..." />
+          </div>
+        </div>
+        <div class="admin-form-row">
+          <div class="admin-form-group">
+            <label class="admin-form-label" for="link-avatar">头像 URL</label>
+            <input type="url" id="link-avatar" name="avatar" class="admin-form-input"
+              value={editLink?.avatar ?? ''} placeholder="https://..." />
+          </div>
+          <div class="admin-form-group">
+            <label class="admin-form-label" for="link-desc">描述</label>
+            <input type="text" id="link-desc" name="description" class="admin-form-input"
+              value={editLink?.description ?? ''} placeholder="一句话描述" />
+          </div>
+        </div>
+
+        <div class="admin-settings-actions">
+          {editLink && <a href="/admin/links" class="admin-btn admin-btn-sm admin-btn-ghost">取消</a>}
+          <button type="submit" class="admin-btn admin-btn-sm admin-btn-success">
+            {editLink ? '保存修改' : '添加友链'}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 友链列表 -->
+    {links.length > 0 ? (
+      <div>
+        {links.map(link => (
+          <div class="admin-link-card">
+            {link.avatar ? (
+              <img src={link.avatar} alt={link.name} class="admin-link-avatar" />
+            ) : (
+              <div class="admin-link-avatar" style="display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--color-primary);font-size:1.125rem">
+                {link.name.charAt(0)}
+              </div>
+            )}
+            <div class="admin-link-info">
+              <div class="admin-link-name">{link.name}</div>
+              <div class="admin-link-url">{link.url}</div>
+              {link.description && <div style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.125rem">{link.description}</div>}
+            </div>
+            <div class="admin-actions">
+              <a href={`/admin/links?edit=${link.id}`} class="admin-action-btn" title="编辑">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                </svg>
+              </a>
+              <form method="POST" style="display:inline" onsubmit="return confirm('确定删除此友链？')">
+                <input type="hidden" name="action" value="delete" />
+                <input type="hidden" name="id" value={link.id} />
+                <button type="submit" class="admin-action-btn is-danger" title="删除">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div class="admin-empty">
+        <div class="admin-empty-icon">🔗</div>
+        还没有友链，添加一个吧
+      </div>
+    )}
+  </div>
+</AdminLayout>

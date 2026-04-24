@@ -1,0 +1,60 @@
+---
+import { loadSiteConfig } from '@/lib/settings';
+import { getDB } from '@/lib/cloudflare/env';
+
+interface Props {
+  currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+
+const db = await getDB();
+const config = await loadSiteConfig(db ?? null);
+const siteTitle = config.get('site.title');
+
+const navItems = [
+  { label: '统计看板', path: '/admin', icon: '📊' },
+  { label: '文章管理', path: '/admin/posts', icon: '📝' },
+  { label: '评论管理', path: '/admin/comments', icon: '💬' },
+  { label: '友链管理', path: '/admin/links', icon: '🔗' },
+  { label: '关于页管理', path: '/admin/about', icon: '👤' },
+  { label: '站点设置', path: '/admin/settings', icon: '⚙️' },
+];
+
+const isActive = (path: string) => {
+  if (path === '/admin') {
+    return currentPath === '/admin' || currentPath === '/admin/';
+  }
+  return currentPath.startsWith(path);
+};
+---
+
+<nav class="admin-nav">
+  <div class="admin-nav-header">
+    <a href="/" class="admin-nav-logo" title="返回主站">
+      <span class="admin-nav-icon">🌍</span>
+      <span class="admin-nav-title">{siteTitle}</span>
+    </a>
+  </div>
+  
+  <ul class="admin-nav-list">
+    {navItems.map((item) => (
+      <li>
+        <a 
+          href={item.path} 
+          class={`admin-nav-link ${isActive(item.path) ? 'is-active' : ''}`}
+        >
+          <span class="admin-nav-item-icon">{item.icon}</span>
+          <span class="admin-nav-item-label">{item.label}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  <div class="admin-nav-footer">
+    <a href="/admin/logout" class="admin-nav-link is-danger">
+      <span class="admin-nav-item-icon">🚪</span>
+      <span class="admin-nav-item-label">退出登录</span>
+    </a>
+  </div>
+</nav>

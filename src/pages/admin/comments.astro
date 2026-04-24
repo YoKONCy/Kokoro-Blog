@@ -1,0 +1,133 @@
+---
+/**
+ * 评论管理 — /admin/comments
+ * 查看/删除评论，分页浏览
+ */
+export const prerender = false;
+
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { getAllComments, deleteComment } from '@/lib/cloudflare/d1';
+import { getDB } from '@/lib/cloudflare/env';
+import { formatDate } from '@/lib/date';
+
+const db = await getDB();
+
+let message = '';
+let messageType = '';
+
+// 处理删除操作
+if (Astro.request.method === 'POST' && db) {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('action')?.toString();
+    const commentId = formData.get('id')?.toString();
+
+    if (action === 'delete' && commentId) {
+      await deleteComment(db, commentId);
+      message = '评论已删除';
+      messageType = 'success';
+    }
+  } catch (e) {
+    message = '操作失败';
+    messageType = 'error';
+  }
+}
+
+// 分页参数
+const page = Math.max(1, parseInt(Astro.url.searchParams.get('page') || '1'));
+const pageSize = 20;
+const offset = (page - 1) * pageSize;
+
+let comments: Awaited<ReturnType<typeof getAllComments>>['comments'] = [];
+let total = 0;
+
+if (db) {
+  try {
+    const result = await getAllComments(db, pageSize, offset);
+    comments = result.comments;
+    total = result.total;
+  } catch (e) {
+    console.error('[admin/comments] 加载评论失败:', e);
+  }
+}
+
+const totalPages = Math.ceil(total / pageSize);
+---
+
+<AdminLayout title="评论管理" description="管理所有评论">
+  <div class="admin-page">
+    <div class="admin-page-header">
+      <h1 class="admin-page-title">💬 评论管理</h1>
+    </div>
+
+    {message && (
+      <div class={`admin-toast admin-toast-${messageType}`}>
+        {messageType === 'success' ? '✅' : '❌'} {message}
+      </div>
+    )}
+
+    {comments.length > 0 ? (
+      <>
+        <div class="admin-page-info" style="margin-bottom:0.75rem">
+          共 {total} 条评论 · 第 {page}/{totalPages} 页
+        </div>
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>文章</th>
+                <th>作者</th>
+                <th>内容</th>
+                <th>状态</th>
+                <th>时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comments.map(c => (
+                <tr>
+                  <td class="admin-table-title">{c.post_title || c.post_slug}</td>
+                  <td>{c.author}</td>
+                  <td class="admin-table-desc">{c.content.slice(0, 60)}{c.content.length > 60 ? '…' : ''}</td>
+                  <td>
+                    <span class={`admin-badge admin-badge-${c.status}`}>
+                      {c.status === 'approved' ? '已发布' : c.status === 'pending' ? '待审' : '垃圾'}
+                    </span>
+                  </td>
+                  <td class="admin-table-time">{formatDate(new Date(c.created_at))}</td>
+                  <td>
+                    <form method="POST" style="display:inline" onsubmit="return confirm('确定删除此评论？')">
+                      <input type="hidden" name="action" value="delete" />
+                      <input type="hidden" name="id" value={c.id} />
+                      <button type="submit" class="admin-action-btn is-danger" title="删除">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                        </svg>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 分页 */}
+        {totalPages > 1 && (
+          <div class="admin-pagination">
+            {page > 1 && <a href={`/admin/comments?page=${page - 1}`} class="admin-page-btn">← 上一页</a>}
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              <a href={`/admin/comments?page=${p}`} class:list={['admin-page-btn', { active: p === page }]}>{p}</a>
+            ))}
+            {page < totalPages && <a href={`/admin/comments?page=${page + 1}`} class="admin-page-btn">下一页 →</a>}
+          </div>
+        )}
+      </>
+    ) : (
+      <div class="admin-empty">
+        <div class="admin-empty-icon">💬</div>
+        还没有评论
+      </div>
+    )}
+  </div>
+</AdminLayout>

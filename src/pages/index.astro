@@ -1,19 +1,35 @@
 ---
 /**
  * 首页
+ * 最新文章从 D1 查询，Hero 文字从 settings 读取
  * 样式已提取到 src/styles/home.css
  */
-import { getCollection } from 'astro:content';
+export const prerender = false;
+
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { t } from '@/lib/i18n';
 import { SITE } from '@/lib/seo';
 import { formatDate } from '@/lib/date';
 import { getReadingTime } from '@/lib/utils';
+import { getPublishedPosts, parseTags } from '@/lib/cloudflare/d1';
+import { getDB } from '@/lib/cloudflare/env';
+import { loadSiteConfig } from '@/lib/settings';
 
-// 获取最新文章（非草稿，按日期倒序）
-const posts = (await getCollection('blog', ({ data }) => !data.draft))
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-  .slice(0, 6);
+const db = await getDB();
+const config = await loadSiteConfig(db ?? null);
+
+// 获取最新文章（已发布，按日期倒序，取前 6 篇）
+let posts: Awaited<ReturnType<typeof getPublishedPosts>> = [];
+try {
+  if (db) {
+    posts = (await getPublishedPosts(db)).slice(0, 6);
+  }
+} catch (e) {
+  console.error('[index] 加载文章失败:', e);
+}
+
+const heroTitle = config.get('hero.title');
+const heroDesc = config.get('hero.description');
 ---
 
 <BaseLayout title="" description={SITE.description}>
@@ -23,108 +39,218 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
     <div class="hero-content">
       <div class="hero-badge animate-slide-up">✨ 欢迎来到</div>
       <h1 class="hero-title animate-slide-up" style="animation-delay: 80ms">
-        <span class="gradient-text">{SITE.title}</span>
+        <span class="gradient-text">{heroTitle}</span>
       </h1>
       <p class="hero-desc animate-slide-up" id="hero-slogan" style="animation-delay: 160ms">
-        {SITE.description}
+        {heroDesc}
       </p>
       <div class="hero-actions animate-slide-up" style="animation-delay: 240ms">
         <a href="/blog" class="btn btn-primary">{t('nav.blog')}</a>
         <a href="/about" class="btn btn-ghost">{t('nav.about')}</a>
       </div>
     </div>
-  </section>
 
-  <!-- 最新文章 -->
-  <section class="section">
-    <div class="container">
-      <h2 class="section-title">
-        <span class="section-icon">📝</span>
-        {t('blog.latestPosts')}
-      </h2>
-
-      {posts.length > 0 ? (
-        <div class="posts-grid stagger">
-          {posts.map(post => (
-            <a href={`/blog/${post.id}`} class="post-card glow-card">
-              {post.data.heroImage && (
-                <div class="post-card-image">
-                  <img src={post.data.heroImage} alt={post.data.title} loading="lazy" />
-                </div>
-              )}
-              <div class="post-card-body">
-                <div class="post-card-meta">
-                  <time datetime={post.data.pubDate.toISOString()}>
-                    {formatDate(post.data.pubDate)}
-                  </time>
-                  <span>·</span>
-                  <span>{getReadingTime(post.body ?? '')} {t('blog.readingTime')}</span>
-                </div>
-                <h3 class="post-card-title">{post.data.title}</h3>
-                <p class="post-card-desc">{post.data.description}</p>
-                <div class="post-card-tags">
-                  {post.data.tags.slice(0, 3).map(tag => (
-                    <span class="tag">{tag}</span>
-                  ))}
-                </div>
-              </div>
-            </a>
-          ))}
-        </div>
-      ) : (
-        <p class="no-posts">{t('blog.noPosts')}</p>
-      )}
-
-      {posts.length > 0 && (
-        <div class="section-action">
-          <a href="/blog" class="btn btn-ghost">
-            {t('blog.allPosts')} →
-          </a>
-        </div>
-      )}
+    <!-- 向下滚动提示 -->
+    <div class="hero-scroll-hint" id="hero-scroll-hint">
+      <span>Scroll</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
     </div>
   </section>
+
+  <!-- 内容区 -->
+  <div class="home-content-wrapper" id="home-content">
+    <section class="section" id="home-posts-section">
+      <div class="container">
+        <h2 class="section-title">
+          <span class="section-icon">📝</span>
+          {t('blog.latestPosts')}
+        </h2>
+
+        {posts.length > 0 ? (
+          <div class="posts-grid stagger">
+            {posts.map(post => {
+              const tags = parseTags(post.tags);
+              return (
+                <a href={`/blog/${post.slug}`} class="post-card glow-card">
+                  {post.hero_image && (
+                    <div class="post-card-image">
+                      <img src={post.hero_image} alt={post.title} loading="lazy" />
+                    </div>
+                  )}
+                  <div class="post-card-body">
+                    <div class="post-card-meta">
+                      <time datetime={post.created_at}>
+                        {formatDate(new Date(post.created_at))}
+                      </time>
+                      <span>·</span>
+                      <span>{getReadingTime(post.description || '')} {t('blog.readingTime')}</span>
+                    </div>
+                    <h3 class="post-card-title">{post.title}</h3>
+                    <p class="post-card-desc">{post.description}</p>
+                    <div class="post-card-tags">
+                      {tags.slice(0, 3).map(tag => (
+                        <span class="tag">{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        ) : (
+          <p class="no-posts">{t('blog.noPosts')}</p>
+        )}
+
+        {posts.length > 0 && (
+          <div class="section-action">
+            <a href="/blog" class="btn btn-ghost">
+              {t('blog.allPosts')} →
+            </a>
+          </div>
+        )}
+      </div>
+    </section>
+  </div>
 </BaseLayout>
 
 <script is:inline>
-  // 打字机特效
   document.addEventListener('astro:page-load', () => {
+    // ─── 打字机特效 ───
     const el = document.getElementById('hero-slogan');
-    if (!el || el.dataset.typed) return;
-    el.dataset.typed = 'true';
-    
-    const text = el.textContent.trim();
-    el.textContent = '';
-    el.style.borderRight = '2px solid var(--color-primary)';
-    el.style.paddingRight = '4px';
-    el.style.display = 'inline-block';
-    
-    // 注入闪烁光标动画
-    if (!document.getElementById('typewriter-styles')) {
-      const style = document.createElement('style');
-      style.id = 'typewriter-styles';
-      style.textContent = `
-        @keyframes blink-cursor {
-          0%, 100% { border-color: transparent; }
-          50% { border-color: var(--color-primary); }
-        }
-        #hero-slogan { animation: blink-cursor 0.75s step-end infinite; }
-        #hero-slogan.typewriter-done { border-color: transparent !important; animation: none !important; }
-      `;
-      document.head.appendChild(style);
-    }
-    
-    let i = 0;
-    function typeWriter() {
-      if (i < text.length) {
-        el.textContent += text.charAt(i);
-        i++;
-        setTimeout(typeWriter, 60); // 打字速度
-      } else {
-        setTimeout(() => el.classList.add('typewriter-done'), 2000); // 结束后光标再闪烁2秒然后消失
+    if (el && !el.dataset.typed) {
+      el.dataset.typed = 'true';
+
+      const text = el.textContent.trim();
+      el.textContent = '';
+      el.style.borderRight = '2px solid var(--color-primary)';
+      el.style.paddingRight = '4px';
+      el.style.display = 'inline-block';
+
+      if (!document.getElementById('typewriter-styles')) {
+        const style = document.createElement('style');
+        style.id = 'typewriter-styles';
+        style.textContent = `
+          @keyframes blink-cursor {
+            0%, 100% { border-color: transparent; }
+            50% { border-color: var(--color-primary); }
+          }
+          #hero-slogan { animation: blink-cursor 0.75s step-end infinite; }
+          #hero-slogan.typewriter-done { border-color: transparent !important; animation: none !important; }
+        `;
+        document.head.appendChild(style);
       }
+
+      let i = 0;
+      function typeWriter() {
+        if (i < text.length) {
+          el.textContent += text.charAt(i);
+          i++;
+          setTimeout(typeWriter, 60);
+        } else {
+          setTimeout(() => el.classList.add('typewriter-done'), 2000);
+        }
+      }
+
+      setTimeout(typeWriter, 400);
     }
+
+    // ─── 首页全屏滚动切换逻辑 ───
+    const hero = document.querySelector('.hero');
+    const content = document.getElementById('home-content');
+    const scrollHint = document.getElementById('hero-scroll-hint');
+
+    if (!hero || !content) return;
+
+    let isHeroActive = true;
+    let isAnimating = false;
+
+    // 初始化状态
+    document.body.style.overflow = 'hidden';
     
-    setTimeout(typeWriter, 400); // 等待入场动画基本完成再开始打字
+    function toggleHero(showHero) {
+      if (isAnimating || isHeroActive === showHero) return;
+      isAnimating = true;
+      isHeroActive = showHero;
+
+      if (showHero) {
+        document.body.style.overflow = 'hidden';
+        hero.classList.remove('is-hidden');
+        content.classList.remove('is-active');
+        window.scrollTo(0, 0); // 确保切回 Hero 时页面在最顶端
+      } else {
+        document.body.style.overflow = '';
+        hero.classList.add('is-hidden');
+        content.classList.add('is-active');
+      }
+
+      // 等待过渡动画完成（与 CSS 中的 0.8s 匹配）
+      setTimeout(() => {
+        isAnimating = false;
+      }, 800);
+    }
+
+    // 点击 Scroll Hint 直接切换
+    if (scrollHint) {
+      scrollHint.addEventListener('click', () => {
+        toggleHero(false);
+      });
+    }
+
+    // 清理旧事件绑定（适应 View Transitions）
+    if (window._homeWheelHandler) {
+      window.removeEventListener('wheel', window._homeWheelHandler);
+      window.removeEventListener('touchstart', window._homeTouchStartHandler);
+      window.removeEventListener('touchmove', window._homeTouchMoveHandler);
+    }
+
+    // 鼠标滚轮事件
+    window._homeWheelHandler = function(e) {
+      if (isAnimating) return;
+      
+      if (isHeroActive) {
+        // 在首屏时，只要向下滚动就切换
+        if (e.deltaY > 0) {
+          toggleHero(false);
+        }
+      } else {
+        // 在内容区时，只有当滚动到了最顶部，且继续向上滚动时才切回首屏
+        if (window.scrollY <= 0 && e.deltaY < 0) {
+          toggleHero(true);
+        }
+      }
+    };
+
+    // 触摸事件（移动端滑动）
+    let touchStartY = 0;
+    window._homeTouchStartHandler = function(e) {
+      touchStartY = e.touches[0].clientY;
+    };
+    
+    window._homeTouchMoveHandler = function(e) {
+      if (isAnimating) return;
+      const touchY = e.touches[0].clientY;
+      const deltaY = touchStartY - touchY; // > 0 意味着手指向上滑（页面往下滚）
+
+      if (isHeroActive) {
+        if (deltaY > 30) {
+          toggleHero(false);
+        }
+      } else {
+        if (window.scrollY <= 0 && deltaY < -30) {
+          toggleHero(true);
+        }
+      }
+    };
+
+    window.addEventListener('wheel', window._homeWheelHandler, { passive: true });
+    window.addEventListener('touchstart', window._homeTouchStartHandler, { passive: true });
+    window.addEventListener('touchmove', window._homeTouchMoveHandler, { passive: true });
+    
+    // 清理：离开页面时恢复滚动
+    document.addEventListener('astro:before-preparation', () => {
+      document.body.style.overflow = '';
+    }, { once: true });
   });
 </script>
