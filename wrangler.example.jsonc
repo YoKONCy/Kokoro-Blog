@@ -1,7 +1,11 @@
 {
+	// 1. 复制此文件并重命名为 wrangler.jsonc
+	// 2. 运行 `npx wrangler d1 create <your-db-name>` 创建数据库
+	// 3. 将输出的 database_id 填入下方
+
 	"compatibility_date": "2026-04-23",
 	"compatibility_flags": ["global_fetch_strictly_public", "nodejs_compat"],
-	"name": "kokoroblog",
+	"name": "your-project-name",
 	"main": "@astrojs/cloudflare/entrypoints/server",
 	"assets": {
 		"directory": "./dist",
@@ -13,8 +17,8 @@
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "kokoro",
-			"database_id": "placeholder"
+			"database_name": "your-db-name",
+			"database_id": "your-database-id-here"
 		}
 	]
 }
