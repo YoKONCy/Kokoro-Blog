@@ -20,7 +20,7 @@ export const GET: APIRoute = async ({ params }) => {
       return Response.json({ success: false, error: '缺少文章标识' }, { status: 400 });
     }
 
-    const db = await getDB();
+    const db = await getDB(context.locals);
     if (!db) {
       return Response.json({ success: false, error: 'D1 不可用' }, { status: 503 });
     }
@@ -64,7 +64,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     const ipHashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip));
     const ipHash = Array.from(new Uint8Array(ipHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
 
-    const db = await getDB();
+    const db = await getDB(context.locals);
     if (!db) {
       return Response.json({ success: false, error: 'D1 不可用' }, { status: 503 });
     }

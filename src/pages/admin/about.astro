@@ -11,7 +11,7 @@ import { setSettings } from '@/lib/cloudflare/d1';
 import { getDB } from '@/lib/cloudflare/env';
 import { renderMarkdown } from '@/lib/markdown';
 
-const db = await getDB();
+const db = await getDB(Astro.locals);
 
 let message = '';
 let messageType = '';

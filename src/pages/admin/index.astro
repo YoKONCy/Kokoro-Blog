@@ -10,7 +10,7 @@ import { getPublishedPostCount, getTotalCommentCount, getTotalViewCount, getToda
 import { getDB } from '@/lib/cloudflare/env';
 import { formatDate } from '@/lib/date';
 
-const db = await getDB();
+const db = await getDB(Astro.locals);
 
 let postCount = 0;
 let commentCount = 0;

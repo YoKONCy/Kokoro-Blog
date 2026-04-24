@@ -5,14 +5,17 @@
 
 /**
  * 获取 Cloudflare Workers 环境绑定
- * 在本地开发 (wrangler dev) 和生产环境 (Cloudflare Pages) 都可用
+ * 生产环境优先从 locals.runtime.env 读取，本地回退到 cloudflare:workers 模块
  */
-export async function getCloudflareEnv(): Promise<{ DB?: D1Database; BUCKET?: R2Bucket; [key: string]: any }> {
+export async function getCloudflareEnv(locals?: any): Promise<{ DB?: D1Database; BUCKET?: R2Bucket; [key: string]: any }> {
+  if (locals?.runtime?.env) {
+    return locals.runtime.env;
+  }
+  
   try {
     const mod = await import('cloudflare:workers');
     return mod.env ?? {};
   } catch {
-    // 非 Cloudflare 环境（如纯 astro dev），返回空对象
     return {};
   }
 }
@@ -20,7 +23,7 @@ export async function getCloudflareEnv(): Promise<{ DB?: D1Database; BUCKET?: R2
 /**
  * 获取 D1 数据库绑定（快捷方法）
  */
-export async function getDB(): Promise<D1Database | undefined> {
-  const e = await getCloudflareEnv();
+export async function getDB(locals?: any): Promise<D1Database | undefined> {
+  const e = await getCloudflareEnv(locals);
   return e.DB;
 }

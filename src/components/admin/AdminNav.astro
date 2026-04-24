@@ -8,7 +8,7 @@ interface Props {
 
 const { currentPath } = Astro.props;
 
-const db = await getDB();
+const db = await getDB(Astro.locals);
 const config = await loadSiteConfig(db ?? null);
 const siteTitle = config.get('site.title');
 

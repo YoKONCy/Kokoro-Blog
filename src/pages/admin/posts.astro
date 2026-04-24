@@ -11,7 +11,7 @@ import { getDB } from '@/lib/cloudflare/env';
 import { formatDate } from '@/lib/date';
 import { renderMarkdown } from '@/lib/markdown';
 
-const db = await getDB();
+const db = await getDB(Astro.locals);
 let posts: Awaited<ReturnType<typeof getAllPosts>> = [];
 
 // 是否进入编辑模式（通过 ?edit=<id> 或 ?new=1）

@@ -9,7 +9,7 @@ import AdminLayout from '@/layouts/AdminLayout.astro';
 import { getLinks, createLink, updateLink, deleteLink } from '@/lib/cloudflare/d1';
 import { getDB } from '@/lib/cloudflare/env';
 
-const db = await getDB();
+const db = await getDB(Astro.locals);
 
 let message = '';
 let messageType = '';

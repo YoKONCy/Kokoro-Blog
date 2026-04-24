@@ -16,7 +16,7 @@ let searchError = '';
 
 if (query) {
   try {
-    const db = await getDB();
+    const db = await getDB(Astro.locals);
     if (!db) throw new Error('D1 not bound');
     results = await searchPosts(db, query);
   } catch {
