@@ -3,8 +3,6 @@ dist/
 dist-ssr/
 .astro/
 .wrangler/
-wrangler.jsonc
-wrangler.toml
 
 # dependencies
 node_modules/
