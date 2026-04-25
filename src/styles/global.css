@@ -28,6 +28,7 @@
   --color-surface: oklch(0.99 0.005 280 / 0.65);
   --color-surface-raised: oklch(0.99 0.005 280 / 0.85);
   --color-border: oklch(0.90 0.02 280 / 0.4);
+  --color-overlay-base: 0.99 0.005 280;
 
   /* ── 文字色 ── */
   --color-text: oklch(0.20 0.02 280);
@@ -69,6 +70,7 @@
   --color-surface: oklch(0.15 0.03 280 / 0.65);
   --color-surface-raised: oklch(0.18 0.035 280 / 0.85);
   --color-border: oklch(0.28 0.04 280 / 0.5);
+  --color-overlay-base: 0.15 0.03 280;
 
   --color-text: oklch(0.92 0.01 280);
   --color-text-secondary: oklch(0.70 0.02 280);
