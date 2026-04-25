@@ -13,7 +13,7 @@ const slugSchema = z
   .string()
   .min(1, 'Slug 不能为空')
   .max(200, 'Slug 不能超过 200 字符')
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug 只能包含小写字母、数字和连字符');
+  .regex(/^[a-z0-9]+(?:[-/][a-z0-9]+)*$/, 'Slug 只能包含小写字母、数字、连字符和斜杠');
 
 /** 标签数组：每项 1-30 字符，最多 20 个标签 */
 const tagsSchema = z

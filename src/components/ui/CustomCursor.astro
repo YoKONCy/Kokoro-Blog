@@ -3,6 +3,11 @@
  * CustomCursor — 自定义鼠标指针
  * 内点零延迟跟随，外圈高跟手弹性缓冲
  * 样式位于 src/styles/cursor.css（workerd 兼容性）
+ *
+ * View Transitions 兼容要点：
+ *   - DOM 节点使用 transition:persist 保持跨页存活
+ *   - 每次 page-load 重置位置并隐藏，直到用户首次 mousemove 才显示
+ *   - mousemove 监听器只绑定一次（挂在 window 上，不随 DOM swap 失效）
  */
 ---
 
@@ -19,7 +24,13 @@
 
     const win = window as any;
 
+    // 每次切页时：隐藏光标，等待用户首次 mousemove 再显示
+    // 这样就不会出现光标闪现在 (0,0) 的问题
+    dot.style.opacity = '0';
+    outline.style.opacity = '0';
+
     if (win._cursorInited) {
+      // mousemove 监听器已存在，只需要重新绑定 hover 事件
       bindHoverEvents();
       return;
     }
@@ -36,8 +47,25 @@
     window.addEventListener('mousemove', (e) => {
       mx = e.clientX;
       my = e.clientY;
-      dot.style.transform = `translate3d(${mx - 4}px, ${my - 4}px, 0)`;
-      
+
+      // 首次 mousemove：恢复光标可见
+      const curDot = document.getElementById('cursor-dot');
+      const curOutline = document.getElementById('cursor-outline');
+      if (curDot && curDot.style.opacity === '0') {
+        curDot.style.opacity = '';
+        // 外圈也跳到当前位置，避免从 (-100,-100) 滑过来
+        ox = mx;
+        oy = my;
+        if (curOutline) {
+          curOutline.style.opacity = '';
+          curOutline.style.transform = `translate3d(${ox - 16}px, ${oy - 16}px, 0)`;
+        }
+      }
+
+      if (curDot) {
+        curDot.style.transform = `translate3d(${mx - 4}px, ${my - 4}px, 0)`;
+      }
+
       if (!isMoving) {
         isMoving = true;
         if (!loopId) loopId = requestAnimationFrame(loop);
@@ -46,22 +74,25 @@
 
     // 外圈：rAF + 高跟手系数 0.3（越大越跟手，1 = 完全同步）
     const loop = () => {
+      const curOutline = document.getElementById('cursor-outline');
+      if (!curOutline) { loopId = null; return; }
+
       const dx = mx - ox;
       const dy = my - oy;
-      
+
       // 当外圈已经追上内点时，停止动画循环以节省 CPU/GPU 资源
       if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
         ox = mx;
         oy = my;
-        outline.style.transform = `translate3d(${ox - 16}px, ${oy - 16}px, 0)`;
+        curOutline.style.transform = `translate3d(${ox - 16}px, ${oy - 16}px, 0)`;
         isMoving = false;
         loopId = null;
         return;
       }
-      
+
       ox += dx * 0.3;
       oy += dy * 0.3;
-      outline.style.transform = `translate3d(${ox - 16}px, ${oy - 16}px, 0)`;
+      curOutline.style.transform = `translate3d(${ox - 16}px, ${oy - 16}px, 0)`;
       loopId = requestAnimationFrame(loop);
     };
 
@@ -80,3 +111,4 @@
 
   document.addEventListener('astro:page-load', initCursor);
 </script>
+

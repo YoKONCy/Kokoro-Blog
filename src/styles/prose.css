@@ -83,9 +83,10 @@
     background: var(--color-primary);
   }
 
-  /* 针对代码块内代码的字体强制修复 */
+  /* 针对代码块内代码的字体与背景修复（防止 highlight.js 覆盖毛玻璃） */
   pre code {
     font-family: var(--font-mono) !important;
+    background: transparent !important;
   }
 
   /* 二次元/科技终端前缀装饰 */
