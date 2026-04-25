@@ -61,6 +61,9 @@ const canonical = canonicalUrl || Astro.url.href;
 <!-- Favicon -->
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
+<!-- RSS 自动发现 -->
+<link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
+
 <!-- 首屏背景图预加载优化 -->
 <link rel="preload" href="/images/kokoro1.webp" as="image" />
 

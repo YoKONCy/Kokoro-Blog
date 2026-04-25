@@ -253,12 +253,28 @@ export function parseTags(tagsJson: string): string[] {
   }
 }
 
-/** 获取已发布的文章列表（前台用，不含 content） */
-export async function getPublishedPosts(db: D1Database): Promise<Omit<Post, 'content'>[]> {
+/** 分页结果 */
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+}
+
+/** 获取已发布的文章列表（前台用，不含 content，支持分页） */
+export async function getPublishedPosts(
+  db: D1Database,
+  limit = 50,
+  offset = 0
+): Promise<PaginatedResult<Omit<Post, 'content'>>> {
+  const countRow = await db
+    .prepare("SELECT COUNT(*) as count FROM posts WHERE status = 'published'")
+    .first<{ count: number }>();
+  const total = countRow?.count ?? 0;
+
   const { results } = await db
-    .prepare("SELECT id, slug, title, description, hero_image, tags, status, created_at, updated_at FROM posts WHERE status = 'published' ORDER BY created_at DESC")
+    .prepare("SELECT id, slug, title, description, hero_image, tags, status, created_at, updated_at FROM posts WHERE status = 'published' ORDER BY created_at DESC LIMIT ? OFFSET ?")
+    .bind(limit, offset)
     .all<Omit<Post, 'content'>>();
-  return results ?? [];
+  return { items: results ?? [], total };
 }
 
 /** 获取所有文章列表（管理后台用，不含 content） */
@@ -304,26 +320,72 @@ export async function getPostBySlug(db: D1Database, slug: string): Promise<Post 
   return row ?? null;
 }
 
-/** 按标签筛选已发布文章 */
-export async function getPublishedPostsByTag(db: D1Database, tag: string): Promise<Omit<Post, 'content'>[]> {
-  // D1 SQLite 支持 json_each，但为简单起见使用 LIKE 匹配
-  const { results } = await db
-    .prepare(`SELECT id, slug, title, description, hero_image, tags, status, created_at, updated_at FROM posts WHERE status = 'published' AND tags LIKE ? ORDER BY created_at DESC`)
-    .bind(`%"${tag}"%`)
-    .all<Omit<Post, 'content'>>();
-  return results ?? [];
+/**
+ * 按标签筛选已发布文章（支持分页）
+ * 使用 json_each() 精确匹配标签，避免 LIKE 的子串误匹配问题
+ * 例如搜索 "react" 不会误匹配 "react-native"
+ */
+export async function getPublishedPostsByTag(
+  db: D1Database,
+  tag: string,
+  limit = 50,
+  offset = 0
+): Promise<PaginatedResult<Omit<Post, 'content'>>> {
+  try {
+    // 优先使用 json_each 精确匹配
+    const countRow = await db
+      .prepare("SELECT COUNT(*) as count FROM posts WHERE status = 'published' AND EXISTS (SELECT 1 FROM json_each(posts.tags) WHERE json_each.value = ?)")
+      .bind(tag)
+      .first<{ count: number }>();
+    const total = countRow?.count ?? 0;
+
+    const { results } = await db
+      .prepare(`SELECT id, slug, title, description, hero_image, tags, status, created_at, updated_at FROM posts WHERE status = 'published' AND EXISTS (SELECT 1 FROM json_each(posts.tags) WHERE json_each.value = ?) ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+      .bind(tag, limit, offset)
+      .all<Omit<Post, 'content'>>();
+    return { items: results ?? [], total };
+  } catch {
+    // json_each 不可用时回退到 LIKE 匹配
+    const likePattern = `%"${tag}"%`;
+
+    const countRow = await db
+      .prepare("SELECT COUNT(*) as count FROM posts WHERE status = 'published' AND tags LIKE ?")
+      .bind(likePattern)
+      .first<{ count: number }>();
+    const total = countRow?.count ?? 0;
+
+    const { results } = await db
+      .prepare(`SELECT id, slug, title, description, hero_image, tags, status, created_at, updated_at FROM posts WHERE status = 'published' AND tags LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+      .bind(likePattern, limit, offset)
+      .all<Omit<Post, 'content'>>();
+    return { items: results ?? [], total };
+  }
 }
 
-/** 获取所有已发布文章的标签（去重） */
+/**
+ * 获取所有已发布文章的标签（去重）
+ * 使用 SQL 级 json_each 提取，避免将全量文章加载到内存
+ */
 export async function getAllTags(db: D1Database): Promise<string[]> {
-  const posts = await getPublishedPosts(db);
-  const tagSet = new Set<string>();
-  for (const post of posts) {
-    for (const tag of parseTags(post.tags)) {
-      tagSet.add(tag);
+  try {
+    // 优先使用 json_each 高效提取
+    const { results } = await db
+      .prepare(`SELECT DISTINCT j.value as tag FROM posts, json_each(posts.tags) AS j WHERE posts.status = 'published' ORDER BY tag ASC`)
+      .all<{ tag: string }>();
+    return (results ?? []).map(r => r.tag);
+  } catch {
+    // json_each 不可用时的回退方案
+    const { results } = await db
+      .prepare("SELECT tags FROM posts WHERE status = 'published'")
+      .all<{ tags: string }>();
+    const tagSet = new Set<string>();
+    for (const row of results ?? []) {
+      for (const tag of parseTags(row.tags)) {
+        tagSet.add(tag);
+      }
     }
+    return [...tagSet];
   }
-  return [...tagSet];
 }
 
 /** 创建文章 */
@@ -356,7 +418,7 @@ export async function createPost(
     .run();
 
   // 同步 FTS 索引
-  await syncPostFts(db, {
+  await syncPostToFts(db, {
     slug: data.slug,
     title: data.title,
     description: data.description ?? '',
@@ -407,7 +469,7 @@ export async function updatePost(
   // 更新后同步 FTS：需要获取完整的文章数据
   const updatedPost = await getPostById(db, id);
   if (updatedPost) {
-    await syncPostFts(db, {
+    await syncPostToFts(db, {
       slug: updatedPost.slug,
       title: updatedPost.title,
       description: updatedPost.description,
@@ -428,8 +490,11 @@ export async function deletePost(db: D1Database, id: string): Promise<void> {
   await db.prepare('DELETE FROM posts WHERE id = ?').bind(id).run();
 }
 
-/** 同步文章到 FTS5 索引 */
-async function syncPostFts(
+/**
+ * 同步文章到 FTS5 索引（先删后插，保证幂等）
+ * 这是项目中 FTS 索引同步的唯一入口，search.ts 中会 re-export 此函数
+ */
+export async function syncPostToFts(
   db: D1Database,
   post: { slug: string; title: string; description: string; content: string; tags: string[]; pubDate: string }
 ): Promise<void> {
@@ -510,29 +575,36 @@ export async function setSettings(db: D1Database, settings: Record<string, strin
 
 // ===== Session 管理 =====
 
-/** 创建 session（登录用） */
+/** 创建 session（登录用） — 数据库中只存储 Token 的 SHA-256 哈希 */
 export async function createSession(db: D1Database, token: string, expiresInDays = 7): Promise<void> {
+  const { hashSessionToken } = await import('./auth');
+  const hashedToken = await hashSessionToken(token);
   await db
     .prepare("INSERT INTO sessions (token, expires_at) VALUES (?, datetime('now', ?))")
-    .bind(token, `+${expiresInDays} days`)
+    .bind(hashedToken, `+${expiresInDays} days`)
     .run();
 }
 
-/** 验证 session 是否有效 */
+/** 验证 session 是否有效 — 对 Cookie 中的原始 Token 哈希后查询 */
 export async function validateSession(db: D1Database, token: string): Promise<boolean> {
+  const { hashSessionToken } = await import('./auth');
+  const hashedToken = await hashSessionToken(token);
   const row = await db
     .prepare("SELECT token FROM sessions WHERE token = ? AND expires_at > datetime('now')")
-    .bind(token)
+    .bind(hashedToken)
     .first();
   return !!row;
 }
 
 /** 删除 session（登出用） */
 export async function deleteSession(db: D1Database, token: string): Promise<void> {
-  await db.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
+  const { hashSessionToken } = await import('./auth');
+  const hashedToken = await hashSessionToken(token);
+  await db.prepare('DELETE FROM sessions WHERE token = ?').bind(hashedToken).run();
 }
 
 /** 清理过期 session */
 export async function cleanExpiredSessions(db: D1Database): Promise<void> {
   await db.prepare("DELETE FROM sessions WHERE expires_at <= datetime('now')").run();
 }
+

@@ -10,6 +10,7 @@ import type { APIRoute } from 'astro';
 import { getComments, createComment, getCommentCount, getCommentCountByIp } from '@/lib/cloudflare/d1';
 import { getDB } from '@/lib/cloudflare/env';
 import { loadSiteConfig } from '@/lib/settings';
+import { createCommentSchema, validateInput } from '@/lib/validation';
 
 export const prerender = false;
 
@@ -43,23 +44,9 @@ export const POST: APIRoute = async ({ params, request }) => {
       return Response.json({ success: false, error: '缺少文章标识' }, { status: 400 });
     }
 
-    const body = await request.json() as {
-      author?: string;
-      email?: string;
-      content?: string;
-      parentId?: string;
-    };
-
-    // 基础校验
-    if (!body.author?.trim() || !body.content?.trim()) {
-      return Response.json({ success: false, error: '名字和内容不能为空' }, { status: 400 });
-    }
-    if (body.content.length > 2000) {
-      return Response.json({ success: false, error: '评论内容不能超过 2000 字' }, { status: 400 });
-    }
-    if (body.author.length > 50) {
-      return Response.json({ success: false, error: '名字不能超过 50 字' }, { status: 400 });
-    }
+    const body = await request.json();
+    const data = validateInput(createCommentSchema, body);
+    if (data instanceof Response) return data;
 
     // IP hash（隐私友好）
     const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || '';
@@ -86,10 +73,10 @@ export const POST: APIRoute = async ({ params, request }) => {
     // 创建评论（直接发布，无需审核）
     const id = await createComment(db, {
       postSlug,
-      author: body.author.trim(),
-      email: body.email?.trim(),
-      content: body.content.trim(),
-      parentId: body.parentId,
+      author: data.author,
+      email: data.email,
+      content: data.content,
+      parentId: data.parentId,
       ipHash,
     });
 
@@ -98,3 +85,4 @@ export const POST: APIRoute = async ({ params, request }) => {
     return Response.json({ success: false, error: '服务器错误' }, { status: 500 });
   }
 };
+

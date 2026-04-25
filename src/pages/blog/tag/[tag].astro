@@ -2,6 +2,7 @@
 /**
  * 标签页 — /blog/tag/[tag]
  * 从 D1 查询指定标签的已发布文章（替代 Content Collections）
+ * 支持 ?page=N 分页
  */
 export const prerender = false;
 
@@ -16,18 +17,28 @@ if (!tag) {
   return Astro.redirect('/blog', 302);
 }
 
-let posts: Awaited<ReturnType<typeof getPublishedPostsByTag>> = [];
+const POSTS_PER_PAGE = 12;
+const url = new URL(Astro.request.url);
+const currentPage = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10) || 1);
+const offset = (currentPage - 1) * POSTS_PER_PAGE;
+
+let posts: Awaited<ReturnType<typeof getPublishedPostsByTag>>['items'] = [];
+let totalPosts = 0;
 let allTags: string[] = [];
 
 try {
   const db = await getDB();
   if (db) {
-    posts = await getPublishedPostsByTag(db, tag);
+    const result = await getPublishedPostsByTag(db, tag, POSTS_PER_PAGE, offset);
+    posts = result.items;
+    totalPosts = result.total;
     allTags = await getAllTags(db);
   }
 } catch (e) {
   console.error('[blog/tag] 加载文章列表失败:', e);
 }
+
+const totalPages = Math.max(1, Math.ceil(totalPosts / POSTS_PER_PAGE));
 ---
 
 <BaseLayout title={`#${tag}`} description={`标签「${tag}」下的所有文章`}>
@@ -38,7 +49,7 @@ try {
         <span class="tag-icon">#</span>
         <span class="gradient-text">{tag}</span>
       </h1>
-      <p class="page-desc">{posts.length} {t('blog.postsCount')}</p>
+      <p class="page-desc">{totalPosts} {t('blog.postsCount')}</p>
     </div>
 
     <!-- 其他标签 -->
@@ -73,5 +84,23 @@ try {
         );
       })}
     </div>
+
+    <!-- 分页导航 -->
+    {totalPages > 1 && (
+      <nav class="pagination" aria-label="分页导航">
+        {currentPage > 1 ? (
+          <a href={`/blog/tag/${tag}?page=${currentPage - 1}`} class="pagination-link prev">← 上一页</a>
+        ) : (
+          <span class="pagination-link prev disabled">← 上一页</span>
+        )}
+        <span class="pagination-info">{currentPage} / {totalPages}</span>
+        {currentPage < totalPages ? (
+          <a href={`/blog/tag/${tag}?page=${currentPage + 1}`} class="pagination-link next">下一页 →</a>
+        ) : (
+          <span class="pagination-link next disabled">下一页 →</span>
+        )}
+      </nav>
+    )}
   </div>
 </BaseLayout>
+

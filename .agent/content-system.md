@@ -12,7 +12,8 @@ import { getPublishedPosts, getPublishedPostBySlug, parseTags } from '@/lib/clou
 import { getDB } from '@/lib/cloudflare/env';
 
 const db = await getDB();
-const posts = await getPublishedPosts(db);
+// 分页查询：返回 { items, total }
+const { items: posts, total } = await getPublishedPosts(db, 12, 0);
 const post = await getPublishedPostBySlug(db, slug);
 ```
 

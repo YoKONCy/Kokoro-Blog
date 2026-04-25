@@ -19,10 +19,11 @@ const db = await getDB();
 const config = await loadSiteConfig(db ?? null);
 
 // 获取最新文章（已发布，按日期倒序，取前 6 篇）
-let posts: Awaited<ReturnType<typeof getPublishedPosts>> = [];
+let posts: Awaited<ReturnType<typeof getPublishedPosts>>['items'] = [];
 try {
   if (db) {
-    posts = (await getPublishedPosts(db)).slice(0, 6);
+    const result = await getPublishedPosts(db, 6);
+    posts = result.items;
   }
 } catch (e) {
   console.error('[index] 加载文章失败:', e);

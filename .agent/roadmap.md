@@ -52,8 +52,8 @@
 ## Phase 6 — 部署上线 🚀
 - [ ] Cloudflare Pages 配置
 - [ ] D1/KV/R2 生产环境绑定
-- [ ] SEO 检查 + 性能优化
-- [ ] RSS + Sitemap
+- [x] SEO 检查 + 性能优化
+- [x] RSS + Sitemap
 
 ## Future — 扩展功能 🔮
 - [ ] 二次元特效（樱花飘落、粒子等）

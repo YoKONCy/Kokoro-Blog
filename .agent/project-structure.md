@@ -5,7 +5,8 @@ blog/
 ├── public/
 │   ├── fonts/
 │   ├── favicon.svg
-│   └── robots.txt
+│   ├── favicon.ico
+│   └── robots.txt              # 搜索引擎规则 + Sitemap 指引
 ├── src/
 │   ├── assets/images/
 │   ├── components/                 # ← 按功能分组
@@ -24,10 +25,12 @@ blog/
 │   │   ├── utils.ts, date.ts, seo.ts
 │   │   ├── settings.ts              # 站点配置加载器（D1 site_settings + 默认值）
 │   │   ├── markdown.ts              # 运行时 Markdown 渲染管线（unified）
+│   │   ├── validation.ts            # Zod Schema 验证层（API 输入校验）
 │   │   ├── i18n/                   # 国际化（index.ts, types.ts, locales/zh.ts）
 │   │   └── cloudflare/             # CF 服务封装
 │   │       ├── d1.ts               # D1 CRUD（posts/comments/links/views/settings/sessions）
 │   │       ├── env.ts              # 环境绑定 Helper（getDB/getCloudflareEnv）
+│   │       ├── auth.ts             # 鉴权加密工具（PBKDF2 密码哈希 + Session Token 哈希）
 │   │       └── search.ts           # FTS5 搜索封装
 │   ├── pages/
 │   │   ├── index.astro             # 首页
@@ -42,7 +45,8 @@ blog/
 │   │   │   ├── links.astro         # 友链管理
 │   │   │   ├── settings.astro      # 站点设置
 │   │   │   └── about.astro         # 关于页管理
-│   │   ├── rss.xml.ts
+│   │   ├── rss.xml.ts              # RSS 2.0 Feed（SSR 动态生成）
+│   │   ├── sitemap.xml.ts          # Sitemap（SSR 动态生成）
 │   │   └── api/                    # API 端点
 │   ├── middleware.ts               # 鉴权中间件
 │   ├── styles/                     # 全局样式（禁止页面级 scoped style）

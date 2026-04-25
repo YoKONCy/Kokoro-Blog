@@ -43,12 +43,25 @@ export const onRequest = defineMiddleware(async (context, next) => {
 });
 ```
 
+### 密码安全（`src/lib/cloudflare/auth.ts`）
+
+- **算法**：PBKDF2-SHA256，10 万次迭代 + 16 字节随机盐
+- **存储格式**：`pbkdf2:100000:<salt_hex>:<hash_hex>`
+- **旧格式兼容**：登录时自动检测 64 位 SHA-256 hex → 验证成功后透明升级为 PBKDF2
+- **时序安全**：密码比较使用逐字符异或，防止时序攻击
+
 ### 会话管理
 
-- 登录 → 生成随机 token → 存入 D1 `sessions` 表
+- 登录 → 生成随机 token → **SHA-256 哈希后**存入 D1 `sessions` 表
+- Cookie 中保留原始 token，数据库只存哈希值（防数据库泄漏后 session 劫持）
 - Cookie: `session=<token>`，HttpOnly, Secure, SameSite=Strict
 - 过期时间：7 天
-- Secret: 通过 Cloudflare Dashboard 配置 `ADMIN_PASSWORD`
+
+### API 输入验证（`src/lib/validation.ts`）
+
+- 使用 Zod（Astro 内置）统一校验所有 API 输入
+- Schema 覆盖：文章创建/更新、评论发表、搜索查询、Markdown 预览
+- `validateInput()` 工具函数返回类型安全数据或 400 Response
 
 ### 评论策略
 

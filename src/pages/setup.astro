@@ -8,6 +8,7 @@ export const prerender = false;
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getDB } from '@/lib/cloudflare/env';
 import { checkIsInitialized, executeSetup } from '@/lib/cloudflare/setup';
+import { hashPassword } from '@/lib/cloudflare/auth';
 
 let errorMessage = '';
 
@@ -30,14 +31,10 @@ if (Astro.request.method === 'POST') {
     if (password.length < 6) {
       errorMessage = '管理员密码至少需要 6 个字符';
     } else {
-      // 密码 SHA-256 哈希
-      const encoder = new TextEncoder();
-      const data = encoder.encode(password);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      // 使用 PBKDF2 + 随机盐值哈希密码
+      const passwordHash = await hashPassword(password);
 
-      await executeSetup(db, hashHex, siteName);
+      await executeSetup(db, passwordHash, siteName);
 
       return Astro.redirect('/admin/login?msg=setup_success');
     }

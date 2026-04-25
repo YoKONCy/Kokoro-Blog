@@ -8,6 +8,7 @@
 import type { APIRoute } from 'astro';
 import { getAllPosts, getPostById, createPost, updatePost, deletePost } from '@/lib/cloudflare/d1';
 import { getDB } from '@/lib/cloudflare/env';
+import { createPostSchema, updatePostSchema, validateInput } from '@/lib/validation';
 
 export const prerender = false;
 
@@ -46,31 +47,18 @@ export const POST: APIRoute = async ({ request }) => {
     const db = await getDB();
     if (!db) return Response.json({ success: false, error: 'D1 不可用' }, { status: 503 });
 
-    const body = await request.json() as {
-      slug?: string;
-      title?: string;
-      description?: string;
-      content?: string;
-      heroImage?: string;
-      tags?: string[];
-      status?: 'draft' | 'published';
-    };
-
-    if (!body.title?.trim()) {
-      return Response.json({ success: false, error: '标题不能为空' }, { status: 400 });
-    }
-    if (!body.slug?.trim()) {
-      return Response.json({ success: false, error: 'Slug 不能为空' }, { status: 400 });
-    }
+    const body = await request.json();
+    const data = validateInput(createPostSchema, body);
+    if (data instanceof Response) return data;
 
     const id = await createPost(db, {
-      slug: body.slug.trim(),
-      title: body.title.trim(),
-      description: body.description?.trim(),
-      content: body.content ?? '',
-      heroImage: body.heroImage?.trim(),
-      tags: body.tags,
-      status: body.status ?? 'draft',
+      slug: data.slug,
+      title: data.title,
+      description: data.description,
+      content: data.content,
+      heroImage: data.heroImage,
+      tags: data.tags,
+      status: data.status,
     });
 
     return Response.json({ success: true, data: { id } }, { status: 201 });
@@ -90,34 +78,23 @@ export const PUT: APIRoute = async ({ request }) => {
     const db = await getDB();
     if (!db) return Response.json({ success: false, error: 'D1 不可用' }, { status: 503 });
 
-    const body = await request.json() as {
-      id?: string;
-      slug?: string;
-      title?: string;
-      description?: string;
-      content?: string;
-      heroImage?: string;
-      tags?: string[];
-      status?: 'draft' | 'published';
-    };
+    const body = await request.json();
+    const data = validateInput(updatePostSchema, body);
+    if (data instanceof Response) return data;
 
-    if (!body.id) {
-      return Response.json({ success: false, error: '缺少文章 ID' }, { status: 400 });
-    }
-
-    const existing = await getPostById(db, body.id);
+    const existing = await getPostById(db, data.id);
     if (!existing) {
       return Response.json({ success: false, error: '文章不存在' }, { status: 404 });
     }
 
-    await updatePost(db, body.id, {
-      slug: body.slug?.trim(),
-      title: body.title?.trim(),
-      description: body.description?.trim(),
-      content: body.content,
-      heroImage: body.heroImage?.trim(),
-      tags: body.tags,
-      status: body.status,
+    await updatePost(db, data.id, {
+      slug: data.slug,
+      title: data.title,
+      description: data.description,
+      content: data.content,
+      heroImage: data.heroImage,
+      tags: data.tags,
+      status: data.status,
     });
 
     return Response.json({ success: true, data: { message: '更新成功' } });
@@ -149,3 +126,4 @@ export const DELETE: APIRoute = async ({ request }) => {
     return Response.json({ success: false, error: '服务器错误' }, { status: 500 });
   }
 };
+

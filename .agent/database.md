@@ -118,5 +118,6 @@ export async function searchPosts(db: D1Database, query: string, limit = 20) {
 
 ### 索引同步
 
-创建/更新/删除文章时，D1 CRUD 函数自动同步 FTS5 索引（`syncPostFts`）。
+创建/更新/删除文章时，D1 CRUD 函数自动同步 FTS5 索引（`syncPostToFts`）。
+`syncPostToFts` 定义在 `d1.ts` 中并由 `search.ts` re-export，是 FTS 同步的唯一入口。
 迁移工具：`db/migrate-posts.ts` 可将 Content Collections Markdown 文件生成 SQL 插入语句。

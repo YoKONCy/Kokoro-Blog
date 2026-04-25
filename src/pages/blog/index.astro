@@ -2,6 +2,7 @@
 /**
  * 文章列表页 — /blog
  * 从 D1 查询已发布文章（替代 Content Collections）
+ * 支持 ?page=N 分页
  */
 export const prerender = false;
 
@@ -9,35 +10,38 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import { t } from '@/lib/i18n';
 import { formatDate } from '@/lib/date';
 import { getReadingTime } from '@/lib/utils';
-import { getPublishedPosts, parseTags } from '@/lib/cloudflare/d1';
+import { getPublishedPosts, getAllTags, parseTags } from '@/lib/cloudflare/d1';
 import { getDB } from '@/lib/cloudflare/env';
 
-let posts: Awaited<ReturnType<typeof getPublishedPosts>> = [];
+const POSTS_PER_PAGE = 12;
+const url = new URL(Astro.request.url);
+const currentPage = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10) || 1);
+const offset = (currentPage - 1) * POSTS_PER_PAGE;
+
+let posts: Awaited<ReturnType<typeof getPublishedPosts>>['items'] = [];
+let totalPosts = 0;
 let allTags: string[] = [];
 
 try {
   const db = await getDB();
   if (db) {
-    posts = await getPublishedPosts(db);
-    // 提取所有标签（去重）
-    const tagSet = new Set<string>();
-    for (const post of posts) {
-      for (const tag of parseTags(post.tags)) {
-        tagSet.add(tag);
-      }
-    }
-    allTags = [...tagSet];
+    const result = await getPublishedPosts(db, POSTS_PER_PAGE, offset);
+    posts = result.items;
+    totalPosts = result.total;
+    allTags = await getAllTags(db);
   }
 } catch (e) {
   console.error('[blog] 加载文章列表失败:', e);
 }
+
+const totalPages = Math.max(1, Math.ceil(totalPosts / POSTS_PER_PAGE));
 ---
 
 <BaseLayout title={t('nav.blog')} description="全部文章列表">
   <div class="blog-page">
     <div class="blog-header">
       <h1 class="page-title gradient-text">{t('nav.blog')}</h1>
-      <p class="page-desc">共 {posts.length} {t('blog.postsCount')}</p>
+      <p class="page-desc">共 {totalPosts} {t('blog.postsCount')}</p>
     </div>
 
     <!-- 标签筛选 -->
@@ -74,5 +78,23 @@ try {
         );
       })}
     </div>
+
+    <!-- 分页导航 -->
+    {totalPages > 1 && (
+      <nav class="pagination" aria-label="分页导航">
+        {currentPage > 1 ? (
+          <a href={`/blog?page=${currentPage - 1}`} class="pagination-link prev">← 上一页</a>
+        ) : (
+          <span class="pagination-link prev disabled">← 上一页</span>
+        )}
+        <span class="pagination-info">{currentPage} / {totalPages}</span>
+        {currentPage < totalPages ? (
+          <a href={`/blog?page=${currentPage + 1}`} class="pagination-link next">下一页 →</a>
+        ) : (
+          <span class="pagination-link next disabled">下一页 →</span>
+        )}
+      </nav>
+    )}
   </div>
 </BaseLayout>
+

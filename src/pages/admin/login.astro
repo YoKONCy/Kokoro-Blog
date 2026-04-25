@@ -9,8 +9,9 @@
 export const prerender = false;
 
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { createSession } from "@/lib/cloudflare/d1";
+import { createSession, setSetting } from "@/lib/cloudflare/d1";
 import { getCloudflareEnv } from "@/lib/cloudflare/env";
+import { verifyPassword, hashPassword } from "@/lib/cloudflare/auth";
 import type { D1Database } from "@cloudflare/workers-types";
 
 let errorMessage = "";
@@ -33,14 +34,17 @@ if (Astro.request.method === "POST") {
       if (!adminPasswordHash) {
         errorMessage = '系统尚未初始化，请先访问 /setup';
       } else {
-        // 对输入密码进行 SHA-256 哈希
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const inputHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        // 使用 auth 模块验证密码（自动兼容旧版 SHA-256 和新版 PBKDF2）
+        const { valid, needsUpgrade } = await verifyPassword(password, adminPasswordHash);
 
-        if (inputHash === adminPasswordHash) {
+        if (valid) {
+          // 如果仍在使用旧版 SHA-256 哈希，自动升级为 PBKDF2
+          if (needsUpgrade) {
+            const newHash = await hashPassword(password);
+            await setSetting(db, 'admin.password', newHash);
+            console.log('[admin/login] 密码哈希已自动升级为 PBKDF2');
+          }
+
           // 密码正确：生成 session token 并写入 D1
           const token = crypto.randomUUID();
           await createSession(db, token, 7); // 7 天有效期

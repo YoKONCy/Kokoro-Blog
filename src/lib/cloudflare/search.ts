@@ -1,6 +1,12 @@
 /**
  * D1 FTS5 全文搜索封装
+ *
+ * FTS 索引同步逻辑统一由 d1.ts 中的 syncPostToFts 负责，
+ * 本模块仅负责搜索查询，并 re-export 同步函数以保持向后兼容。
  */
+
+// Re-export FTS 同步函数（唯一实现在 d1.ts 中）
+export { syncPostToFts, syncPostToFts as syncPostToIndex } from './d1';
 
 export interface SearchResult {
   slug: string;
@@ -26,20 +32,4 @@ export async function searchPosts(db: D1Database, query: string, limit = 20): Pr
     .all<SearchResult>();
 
   return results ?? [];
-}
-
-/**
- * 同步文章到 FTS5 索引（构建时调用）
- */
-export async function syncPostToIndex(
-  db: D1Database,
-  post: { slug: string; title: string; description: string; content: string; tags: string[]; pubDate: string }
-): Promise<void> {
-  // 先删除旧记录
-  await db.prepare('DELETE FROM posts_fts WHERE slug = ?').bind(post.slug).run();
-  // 插入新记录
-  await db
-    .prepare('INSERT INTO posts_fts (slug, title, description, content, tags, pub_date) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(post.slug, post.title, post.description, post.content, post.tags.join(' '), post.pubDate)
-    .run();
 }

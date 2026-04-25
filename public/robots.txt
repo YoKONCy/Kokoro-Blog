@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Sitemap（动态生成）
+Sitemap: /sitemap.xml
+
+# 禁止爬取管理后台和 API
+Disallow: /admin/
+Disallow: /api/
+Disallow: /setup
