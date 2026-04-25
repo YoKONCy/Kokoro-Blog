@@ -7,6 +7,7 @@
 export const prerender = false;
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import PostCard from '@/components/blog/PostCard.astro';
 import { t } from '@/lib/i18n';
 import { formatDate } from '@/lib/date';
 import { getPublishedPostsByTag, getAllTags, parseTags } from '@/lib/cloudflare/d1';
@@ -62,27 +63,7 @@ const totalPages = Math.max(1, Math.ceil(totalPosts / POSTS_PER_PAGE));
 
     <!-- 文章列表 -->
     <div class="post-list stagger">
-      {posts.map(post => {
-        const tags = parseTags(post.tags);
-        return (
-          <a href={`/blog/${post.slug}`} class="post-item glow-card">
-            <div class="post-item-main">
-              <h2 class="post-item-title">{post.title}</h2>
-              <p class="post-item-desc">{post.description}</p>
-              <div class="post-item-tags">
-                {tags.map(tagName => (
-                  <span class:list={['tag-badge', { 'tag-badge-active': tagName === tag }]}>{tagName}</span>
-                ))}
-              </div>
-            </div>
-            <div class="post-item-meta">
-              <time datetime={post.created_at}>
-                {formatDate(new Date(post.created_at))}
-              </time>
-            </div>
-          </a>
-        );
-      })}
+      {posts.map(post => <PostCard post={post} activeTag={tag} />)}
     </div>
 
     <!-- 分页导航 -->

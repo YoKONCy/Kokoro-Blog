@@ -141,4 +141,19 @@ const articleSchema = generateArticleSchema({
     <!-- 评论区 -->
     <CommentSection postSlug={post.slug} client:visible />
   </article>
+
+  <!-- 阅读计数：客户端触发，避免搜索引擎爬虫刷量 -->
+  <script is:inline data-slug={post.slug} data-astro-rerun>
+  (function() {
+    var script = document.querySelector('script[data-slug]');
+    if (!script) return;
+    var slug = script.getAttribute('data-slug');
+    if (!slug) return;
+    // 防止同一篇文章在同一 session 内重复计数
+    var key = 'pv:' + slug;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    fetch('/api/views/' + slug, { method: 'POST' }).catch(function() {});
+  })();
+  </script>
 </BaseLayout>

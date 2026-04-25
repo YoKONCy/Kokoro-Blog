@@ -1,0 +1,45 @@
+---
+import { formatDate } from '@/lib/date';
+import { getReadingTime } from '@/lib/utils';
+import { parseTags } from '@/lib/cloudflare/d1';
+import { t } from '@/lib/i18n';
+
+interface Props {
+  post: {
+    slug: string;
+    title: string;
+    description?: string | null;
+    hero_image?: string | null;
+    tags: string;
+    created_at: string;
+  };
+  activeTag?: string;
+}
+
+const { post, activeTag } = Astro.props;
+const tags = parseTags(post.tags);
+---
+
+<a href={`/blog/${post.slug}`} class="post-item glow-card">
+  {post.hero_image && (
+    <div class="post-hero-bg" style={`background-image: url('${post.hero_image}')`}></div>
+  )}
+  <div class="post-item-content">
+    <div class="post-item-main">
+      <h2 class="post-item-title">{post.title}</h2>
+      <p class="post-item-desc">{post.description}</p>
+      <div class="post-item-tags">
+        {tags.map((tag: string) => (
+          <span class:list={['tag-badge', { 'tag-badge-active': tag === activeTag }]}>{tag}</span>
+        ))}
+      </div>
+    </div>
+    <div class="post-item-meta">
+      <time datetime={post.created_at}>
+        {formatDate(new Date(post.created_at))}
+      </time>
+      <span class="meta-dot">·</span>
+      <span>{getReadingTime(post.description || '')} {t('blog.readingTime')}</span>
+    </div>
+  </div>
+</a>

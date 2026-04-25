@@ -7,6 +7,7 @@
 export const prerender = false;
 
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import PostCard from '@/components/blog/PostCard.astro';
 import { t } from '@/lib/i18n';
 import { formatDate } from '@/lib/date';
 import { getReadingTime } from '@/lib/utils';
@@ -54,29 +55,7 @@ const totalPages = Math.max(1, Math.ceil(totalPosts / POSTS_PER_PAGE));
 
     <!-- 文章列表 -->
     <div class="post-list stagger">
-      {posts.map(post => {
-        const tags = parseTags(post.tags);
-        return (
-          <a href={`/blog/${post.slug}`} class="post-item glow-card">
-            <div class="post-item-main">
-              <h2 class="post-item-title">{post.title}</h2>
-              <p class="post-item-desc">{post.description}</p>
-              <div class="post-item-tags">
-                {tags.map(tag => (
-                  <span class="tag-badge">{tag}</span>
-                ))}
-              </div>
-            </div>
-            <div class="post-item-meta">
-              <time datetime={post.created_at}>
-                {formatDate(new Date(post.created_at))}
-              </time>
-              <span class="meta-dot">·</span>
-              <span>{getReadingTime(post.description || '')} {t('blog.readingTime')}</span>
-            </div>
-          </a>
-        );
-      })}
+      {posts.map(post => <PostCard post={post} />)}
     </div>
 
     <!-- 分页导航 -->

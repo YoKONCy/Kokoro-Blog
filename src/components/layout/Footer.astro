@@ -47,7 +47,7 @@ const currentYear = new Date().getFullYear();
     <!-- 底部版权 -->
     <div class="footer-bottom">
       <p>{footerText ? footerText.replace('{year}', currentYear.toString()) : `© ${currentYear} 秋月佑空. ${t('footer.copyright')}.`}</p>
-      <p class="footer-powered">{t('footer.poweredBy')} ⚡</p>
+      <p class="footer-powered"><a href="https://docs.astro.build/zh-cn/tutorial/0-introduction/" target="_blank" rel="noopener noreferrer">{t('footer.poweredBy')}</a> ⚡</p>
     </div>
   </div>
 </footer>
