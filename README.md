@@ -12,7 +12,7 @@
 一款运行在 Cloudflare 边缘网络上的全栈博客系统。
 Glassmorphism 2.0 视觉设计，D1 数据库驱动，自带管理后台，开箱即用。
 
-[在线演示](https://www.youkong.life) · [快速开始](#-快速开始) · [部署指南](#-部署到-cloudflare)
+[在线演示](https://youkong.life) · [快速开始](#-快速开始) · [部署指南](#-部署到-cloudflare)
 
 <br/>
 
