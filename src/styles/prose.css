@@ -583,7 +583,9 @@
 /* ===================================
    Callouts / Admonitions — 提示框
    由 remark-callouts 插件生成的 DOM
-   用法: :::note / :::tip / :::warning / :::caution
+   支持两种语法：
+   - 容器指令：:::note / :::tip / :::warning / :::caution
+   - GitHub 风格：> [!NOTE] / > [!TIP] / > [!IMPORTANT] / > [!WARNING] / > [!CAUTION]
    =================================== */
 
 .callout {
@@ -624,6 +626,16 @@
 }
 .callout-tip .callout-title {
   color: oklch(0.65 0.20 150);
+}
+
+/* Important — 宝石蓝 */
+.callout-important {
+  border-color: oklch(0.55 0.20 260);
+  background: linear-gradient(135deg, oklch(0.55 0.20 260 / 0.08) 0%, oklch(0.55 0.20 260 / 0.03) 100%);
+  color: var(--color-text);
+}
+.callout-important .callout-title {
+  color: oklch(0.55 0.20 260);
 }
 
 /* Warning — 琥珀橙 */
