@@ -31,7 +31,7 @@
 
     // 关闭灯箱
     function closeLightbox() {
-      overlay.classList.remove('active');
+      overlay!.classList.remove('active');
       // 延迟清理内容避免闪烁
       setTimeout(() => {
         lightboxImg.style.display = 'none';
