@@ -6,9 +6,22 @@
  * 存入 FTS5 索引，使 unicode61 分词器能正确切分中文词语。
  *
  * 搜索时同样对查询词进行分词，保证索引与查询一致。
+ *
+ * ⚠️ 重要：使用动态 import() 延迟加载 jieba-wasm，
+ * 避免在每次 Worker 请求时都加载数 MB 的中文词典，
+ * 防止 "Worker exceeded CPU time limit" 错误。
  */
 
-import { cut_for_search, cut } from 'jieba-wasm';
+/** 缓存动态导入的模块 */
+let jiebaModule: { cut: Function; cut_for_search: Function } | null = null;
+
+async function getJieba() {
+  if (!jiebaModule) {
+    const mod = await import('jieba-wasm');
+    jiebaModule = mod;
+  }
+  return jiebaModule;
+}
 
 /**
  * 判断文本是否包含中文字符
@@ -27,11 +40,12 @@ function containsChinese(text: string): boolean {
  *  - 非中文文本原样保留，交给 unicode61 自行分词
  *  - 过滤掉纯空白和标点符号 token
  */
-export function segmentForIndex(text: string): string {
+export async function segmentForIndex(text: string): Promise<string> {
   if (!text) return '';
   if (!containsChinese(text)) return text;
 
   try {
+    const { cut_for_search } = await getJieba();
     const tokens = cut_for_search(text, true);
     return tokens
       .filter((t: string) => t.trim().length > 0)
@@ -50,11 +64,12 @@ export function segmentForIndex(text: string): string {
  *  - 分词后以空格连接，FTS5 会自动 AND 匹配
  *  - 过滤掉纯标点和空白
  */
-export function segmentForSearch(query: string): string {
+export async function segmentForSearch(query: string): Promise<string> {
   if (!query) return '';
   if (!containsChinese(query)) return query;
 
   try {
+    const { cut } = await getJieba();
     const tokens = cut(query, true);
     return tokens
       .filter((t: string) => t.trim().length > 0 && !/^[\s\p{P}]+$/u.test(t))

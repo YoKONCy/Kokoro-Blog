@@ -511,10 +511,10 @@ export async function syncPostToFts(
   post: { slug: string; title: string; description: string; content: string; tags: string[]; pubDate: string }
 ): Promise<void> {
   // 对各字段进行中文分词预处理
-  const segTitle = segmentForIndex(post.title);
-  const segDesc = segmentForIndex(post.description);
-  const segContent = segmentForIndex(post.content);
-  const segTags = segmentForIndex(post.tags.join(' '));
+  const segTitle = await segmentForIndex(post.title);
+  const segDesc = await segmentForIndex(post.description);
+  const segContent = await segmentForIndex(post.content);
+  const segTags = await segmentForIndex(post.tags.join(' '));
 
   // 先删除旧记录
   await db.prepare('DELETE FROM posts_fts WHERE slug = ?').bind(post.slug).run();

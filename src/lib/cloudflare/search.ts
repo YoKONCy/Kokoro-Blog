@@ -28,7 +28,7 @@ export async function searchPosts(db: D1Database, query: string, limit = 20): Pr
   if (!q) return [];
 
   // 对搜索关键词进行中文分词
-  const segQuery = segmentForSearch(q);
+  const segQuery = await segmentForSearch(q);
 
   const seen = new Set<string>();
   const merged: SearchResult[] = [];
