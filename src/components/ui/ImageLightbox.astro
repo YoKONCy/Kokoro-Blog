@@ -90,7 +90,7 @@
       });
     });
 
-    // 2. Mermaid 图表 — 双击放大 SVG
+    // 2. Mermaid 图表 — 双击放大 SVG（转为 data URL 避免 ID 冲突）
     document.querySelectorAll('.mermaid-chart.rendered').forEach(chart => {
       if ((chart as any)._lightbox) return;
       (chart as any)._lightbox = true;
@@ -101,13 +101,9 @@
         e.preventDefault();
         const svg = (chart as HTMLElement).querySelector('svg');
         if (svg) {
-          // 克隆 SVG 并设置放大样式
-          const svgClone = svg.cloneNode(true) as SVGElement;
-          svgClone.style.maxWidth = '90vw';
-          svgClone.style.maxHeight = '85vh';
-          svgClone.style.width = 'auto';
-          svgClone.style.height = 'auto';
-          showHtml(svgClone.outerHTML);
+          const svgData = new XMLSerializer().serializeToString(svg);
+          const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
+          showImage(dataUrl, 'Mermaid diagram');
         }
       });
     });
