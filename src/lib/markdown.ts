@@ -13,6 +13,7 @@ import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import remarkRehype from 'remark-rehype';
 import rehypeRaw from 'rehype-raw';
+import rehypeSlug from 'rehype-slug';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeStringify from 'rehype-stringify';
 import remarkDirective from 'remark-directive';
@@ -29,7 +30,7 @@ const sanitizeSchema = {
   ...defaultSchema,
   attributes: {
     ...defaultSchema.attributes,
-    '*': [...(defaultSchema.attributes?.['*'] ?? []), 'className', 'class', 'data*'],
+    '*': [...(defaultSchema.attributes?.['*'] ?? []), 'className', 'class', 'data*', 'id'],
     code: [...(defaultSchema.attributes?.['code'] ?? []), 'className', 'class', 'data*'],
     pre: [...(defaultSchema.attributes?.['pre'] ?? []), 'className', 'class', 'data*', 'style', 'tabindex'],
     div: [...(defaultSchema.attributes?.['div'] ?? []), 'className', 'class', 'data*'],
@@ -62,6 +63,7 @@ function getProcessor() {
       .use(remarkCallouts)
       .use(remarkRehype, { allowDangerousHtml: true })
       .use(rehypeRaw)
+      .use(rehypeSlug)
       .use(rehypeTableWrapper)
       .use(rehypeSanitize, sanitizeSchema)
       .use(rehypeStringify);
