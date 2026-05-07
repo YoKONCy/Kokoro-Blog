@@ -20,39 +20,52 @@
     will-change: transform;
   }
 
-  /* 中心实心圆点 —— 这就是准心 */
+  /* 中心实心圆点 —— 准心 */
   .cursor-dot {
     width: 8px;
     height: 8px;
     background-color: var(--color-primary);
     box-shadow: 0 0 4px rgba(255, 255, 255, 0.5), 0 0 10px var(--color-primary);
+    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.25s;
   }
 
-  /* 外圈：小巧柔和的光环，不遮挡视线 */
+  /* 外圈：柔和光环 */
   .cursor-outline {
     width: 32px;
     height: 32px;
     border: 2px solid var(--color-primary);
     box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
-    transition: width 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-                height 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-                background-color 0.2s,
-                border-color 0.2s,
-                opacity 0.2s;
+    opacity: 1;
+    /* 默认过渡 — 用于离开 hover 时的反向收缩回弹 */
+    transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+                height 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 0.3s,
+                filter 0.3s;
+    filter: blur(0px);
   }
 
-  /* 悬停可点击元素：外圈微微放大 + 填充 */
-  body.cursor-hover .cursor-dot {
-    opacity: 0.4;
-  }
-
+  /* ── Hover 进入：外圈扩散模糊后消失 ── */
   body.cursor-hover .cursor-outline {
-    width: 44px;
-    height: 44px;
-    background-color: oklch(0.65 0.18 280 / 0.15);
-    border-color: var(--color-primary);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+    width: 56px;
+    height: 56px;
+    opacity: 0;
+    filter: blur(8px);
+    border-color: oklch(0.65 0.18 280 / 0.4);
+    /* 进入时用更快的 ease-out 让扩散感更自然 */
+    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.3s,
+                filter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* ── Hover 时小蓝点增强发光 ── */
+  body.cursor-hover .cursor-dot {
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.6),
+                0 0 16px var(--color-primary),
+                0 0 30px oklch(0.65 0.18 280 / 0.3);
   }
 }
 
