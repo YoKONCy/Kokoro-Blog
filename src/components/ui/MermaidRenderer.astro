@@ -1,0 +1,104 @@
+---
+/**
+ * Mermaid 图表渲染器
+ *
+ * 在客户端将 ```mermaid 代码块转换为 SVG 图表。
+ * 工作流程：
+ *   1. 查找所有 <code class="language-mermaid"> 元素
+ *   2. 提取原始 Mermaid 代码
+ *   3. 将 <pre> 替换为 <div class="mermaid-wrapper"> 容器
+ *   4. 使用 Mermaid.js（ESM CDN）渲染 SVG
+ *
+ * 必须在 CodeBlockEnhancer 之前执行，避免 mermaid 代码被 highlight.js 处理。
+ * 样式见 src/styles/prose.css 中的 .mermaid-wrapper 部分。
+ */
+---
+
+<script is:inline data-astro-rerun>
+(function() {
+  // 查找所有 mermaid 代码块
+  var mermaidBlocks = document.querySelectorAll('pre code.language-mermaid');
+  if (!mermaidBlocks.length) return;
+
+  // 收集 mermaid 数据并替换 DOM
+  var containers = [];
+  mermaidBlocks.forEach(function(codeEl, i) {
+    var pre = codeEl.parentElement;
+    if (!pre) return;
+
+    var source = codeEl.textContent || '';
+
+    // 创建渲染容器
+    var wrapper = document.createElement('div');
+    wrapper.className = 'mermaid-wrapper';
+    wrapper.setAttribute('data-mermaid-index', String(i));
+
+    // 图表内容区域
+    var chartDiv = document.createElement('div');
+    chartDiv.className = 'mermaid-chart';
+    chartDiv.textContent = 'Loading diagram...';
+    wrapper.appendChild(chartDiv);
+
+    // 折叠显示源码的 details
+    var details = document.createElement('details');
+    details.className = 'mermaid-source';
+    var summary = document.createElement('summary');
+    summary.textContent = '📝 查看源码';
+    details.appendChild(summary);
+    var sourceCode = document.createElement('pre');
+    var sourceCodeEl = document.createElement('code');
+    sourceCodeEl.textContent = source;
+    sourceCode.appendChild(sourceCodeEl);
+    details.appendChild(sourceCode);
+    wrapper.appendChild(details);
+
+    // 替换原 pre 节点
+    pre.parentNode.replaceChild(wrapper, pre);
+
+    containers.push({ el: chartDiv, source: source, id: 'mermaid-' + i });
+  });
+
+  if (!containers.length) return;
+
+  // 动态加载 Mermaid ESM
+  import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs')
+    .then(function(mod) {
+      var mermaid = mod.default;
+
+      // 检测当前主题
+      var isDark = document.documentElement.classList.contains('dark');
+
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: isDark ? 'dark' : 'default',
+        fontFamily: 'var(--font-sans)',
+        securityLevel: 'loose',
+        flowchart: {
+          htmlLabels: true,
+          curve: 'basis',
+          useMaxWidth: true,
+        },
+      });
+
+      // 逐个渲染
+      containers.forEach(function(item) {
+        mermaid.render(item.id, item.source)
+          .then(function(result) {
+            item.el.innerHTML = result.svg;
+            item.el.classList.add('rendered');
+          })
+          .catch(function(err) {
+            console.error('[Mermaid] 渲染失败:', err);
+            item.el.innerHTML = '<div class="mermaid-error">⚠️ 图表渲染失败</div>';
+            item.el.classList.add('error');
+          });
+      });
+    })
+    .catch(function(err) {
+      console.error('[Mermaid] 加载失败:', err);
+      containers.forEach(function(item) {
+        item.el.innerHTML = '<div class="mermaid-error">⚠️ Mermaid 加载失败</div>';
+      });
+    });
+})();
+</script>

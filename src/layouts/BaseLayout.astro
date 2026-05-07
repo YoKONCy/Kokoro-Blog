@@ -10,6 +10,7 @@ import BaseHead from '@/components/seo/BaseHead.astro';
 import Header from '@/components/layout/Header.astro';
 import Footer from '@/components/layout/Footer.astro';
 import CustomCursor from '@/components/ui/CustomCursor.astro';
+import MermaidRenderer from '@/components/ui/MermaidRenderer.astro';
 import CodeBlockEnhancer from '@/components/ui/CodeBlockEnhancer.astro';
 import ImageLightbox from '@/components/ui/ImageLightbox.astro';
 import ToastContainer from '@/components/ui/ToastContainer.astro';
@@ -54,6 +55,7 @@ const { hideHeaderFooter = false, ...seoProps } = Astro.props;
     <LoadingBar />
     <CyberPet />
     <CustomCursor />
+    <MermaidRenderer />
     <CodeBlockEnhancer />
     <ImageLightbox />
     <ToastContainer />

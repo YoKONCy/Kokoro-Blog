@@ -17,7 +17,7 @@ let commentCount = 0;
 let totalViews = 0;
 let todayViews = 0;
 let weeklyViews: { date: string; count: number }[] = [];
-let topPages: { slug: string; view_count: number }[] = [];
+let topPages: { slug: string; title: string; view_count: number }[] = [];
 
 if (db) {
   try {
@@ -88,7 +88,7 @@ const maxView = Math.max(...weeklyViews.map(d => d.count), 1);
           {topPages.map((p, i) => (
             <li class="admin-rank-item">
               <span class="admin-rank-num">{i + 1}</span>
-              <span class="admin-rank-slug">{p.slug}</span>
+              <a href={`/blog/${p.slug}`} class="admin-rank-slug" target="_blank">{p.title}</a>
               <span class="admin-rank-count">{p.view_count} 次</span>
             </li>
           ))}

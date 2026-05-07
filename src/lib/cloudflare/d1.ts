@@ -3,6 +3,8 @@
  * 包含：评论、阅读数、友链、文章、站点设置 的完整 CRUD
  */
 
+import { segmentForIndex } from '@/lib/jieba';
+
 // ===== 评论 =====
 
 export interface Comment {
@@ -146,11 +148,18 @@ export async function getWeeklyViews(db: D1Database): Promise<{ date: string; co
   return results ?? [];
 }
 
-export async function getTopPages(db: D1Database, limit = 5): Promise<{ slug: string; view_count: number }[]> {
+export async function getTopPages(db: D1Database, limit = 5): Promise<{ slug: string; title: string; view_count: number }[]> {
   const { results } = await db
-    .prepare('SELECT slug, view_count FROM page_views ORDER BY view_count DESC LIMIT ?')
+    .prepare(`
+      SELECT pv.slug, p.title, pv.view_count
+      FROM page_views pv
+      INNER JOIN posts p ON pv.slug = p.slug
+      WHERE p.status = 'published'
+      ORDER BY pv.view_count DESC
+      LIMIT ?
+    `)
     .bind(limit)
-    .all<{ slug: string; view_count: number }>();
+    .all<{ slug: string; title: string; view_count: number }>();
   return results ?? [];
 }
 
@@ -493,17 +502,26 @@ export async function deletePost(db: D1Database, id: string): Promise<void> {
 /**
  * 同步文章到 FTS5 索引（先删后插，保证幂等）
  * 这是项目中 FTS 索引同步的唯一入口，search.ts 中会 re-export 此函数
+ *
+ * 使用 jieba 对中文文本进行预分词，分词后以空格分隔存入 FTS5，
+ * 使 unicode61 分词器能正确切分中文词语，大幅提升中文搜索准确率。
  */
 export async function syncPostToFts(
   db: D1Database,
   post: { slug: string; title: string; description: string; content: string; tags: string[]; pubDate: string }
 ): Promise<void> {
+  // 对各字段进行中文分词预处理
+  const segTitle = segmentForIndex(post.title);
+  const segDesc = segmentForIndex(post.description);
+  const segContent = segmentForIndex(post.content);
+  const segTags = segmentForIndex(post.tags.join(' '));
+
   // 先删除旧记录
   await db.prepare('DELETE FROM posts_fts WHERE slug = ?').bind(post.slug).run();
-  // 插入新记录
+  // 插入分词后的记录
   await db
     .prepare('INSERT INTO posts_fts (slug, title, description, content, tags, pub_date) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(post.slug, post.title, post.description, post.content, post.tags.join(' '), post.pubDate)
+    .bind(post.slug, segTitle, segDesc, segContent, segTags, post.pubDate)
     .run();
 }
 

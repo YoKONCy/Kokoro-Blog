@@ -12,22 +12,94 @@
   font-size: 1.0625rem;
   color: var(--color-text);
 
-  /* ── 标题 ── */
+  /* ── 标题：层次分明的视觉阶梯 ── */
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     font-weight: 700;
     letter-spacing: -0.02em;
     color: var(--color-text);
-    text-shadow: 0 2px 12px oklch(0.65 0.18 280 / 0.15); /* 增加标题微光感 */
+    line-height: 1.35;
   }
 
+  /* ── H1 — 主标题：渐变微光，视觉锚点 ── */
+  h1 {
+    font-size: 2.25em;
+    margin-top: 0;
+    margin-bottom: 1em;
+    text-shadow: 0 2px 16px oklch(0.65 0.18 280 / 0.2);
+    position: relative;
+    padding-bottom: 0.5em;
+  }
+
+  h1::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 80px;
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-accent), transparent);
+  }
+
+  /* ── H2 — 章节标题：虚线底框 + 左侧色块 ── */
   h2 {
-    margin-top: 2.5em;
-    padding-bottom: 0.4em;
+    font-size: 1.65em;
+    margin-top: 2.8em;
+    margin-bottom: 0.8em;
+    padding-bottom: 0.45em;
+    padding-left: 0.6em;
     border-bottom: 2px dashed oklch(0.90 0.02 280 / 0.4);
     position: relative;
+    text-shadow: 0 2px 12px oklch(0.65 0.18 280 / 0.12);
   }
-  
+
+  h2::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.15em;
+    bottom: 0.6em;
+    width: 4px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--color-primary), var(--color-accent));
+  }
+
+  /* ── H3 — 小节标题：左侧点缀线 ── */
+  h3 {
+    font-size: 1.3em;
+    margin-top: 2.2em;
+    margin-bottom: 0.6em;
+    padding-left: 0.75em;
+    position: relative;
+    color: var(--color-text);
+    text-shadow: 0 1px 8px oklch(0.65 0.18 280 / 0.08);
+  }
+
+  h3::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.2em;
+    bottom: 0.2em;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--color-primary-light);
+    opacity: 0.7;
+  }
+
+  /* ── H4 — 段落标题：小而精致 ── */
+  h4 {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-top: 1.8em;
+    margin-bottom: 0.5em;
+    color: var(--color-text-secondary);
+    letter-spacing: 0;
+    text-shadow: none;
+  }
+
+  /* ── 标题暗色模式微调 ── */
   .dark h2 {
     border-bottom-color: oklch(0.28 0.04 280 / 0.4);
   }
@@ -171,15 +243,140 @@
     box-shadow: var(--shadow-lg);
   }
 
-  /* ── 表格 ── */
-  table {
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    border: 1px solid var(--color-border);
+  /* ── 表格：赛博毛玻璃 ── */
+
+  /* 响应式横向滚动容器 */
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin: 2em 0;
+    border-radius: var(--radius-lg);
+    border: 1px solid oklch(0.65 0.18 280 / 0.25);
+    box-shadow: 0 4px 24px oklch(0.65 0.18 280 / 0.08),
+                inset 0 0 0 1px oklch(1 0 0 / 0.04);
+    background: oklch(var(--color-overlay-base) / 0.35);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    /* 自定义滚动条 */
+    &::-webkit-scrollbar {
+      height: 5px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: oklch(0.65 0.18 280 / 0.3);
+      border-radius: var(--radius-full);
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background: var(--color-primary);
+    }
   }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    font-size: 0.925em;
+    line-height: 1.6;
+    /* 没被 .table-wrapper 包裹时的回退 */
+    margin: 2em 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  /* 在 .table-wrapper 内时去掉 table 自身的 margin 和圆角 */
+  .table-wrapper table {
+    margin: 0;
+    border-radius: 0;
+  }
+
+  /* ── 表头：毛玻璃渐变 ── */
+  thead {
+    position: relative;
+  }
+
+  thead::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      oklch(0.65 0.18 280 / 0.5),
+      oklch(0.75 0.14 350 / 0.4),
+      transparent
+    );
+  }
+
   th {
-    background: var(--color-surface);
+    background: linear-gradient(
+      135deg,
+      oklch(0.65 0.18 280 / 0.12) 0%,
+      oklch(0.75 0.14 350 / 0.06) 100%
+    );
+    color: var(--color-text);
+    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 0.85em;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.9em 1.2em;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  /* ── 单元格 ── */
+  td {
+    padding: 0.75em 1.2em;
+    border-top: 1px solid oklch(0.65 0.18 280 / 0.1);
+    color: var(--color-text);
+    vertical-align: top;
+    transition: background var(--duration-fast);
+  }
+
+  /* ── 斑马纹 ── */
+  tbody tr:nth-child(even) {
+    background: oklch(0.65 0.18 280 / 0.03);
+  }
+
+  /* ── 行悬浮高亮 ── */
+  tbody tr {
+    transition: background var(--duration-fast) var(--ease-spring),
+                box-shadow var(--duration-fast);
+  }
+  tbody tr:hover {
+    background: oklch(0.65 0.18 280 / 0.08);
+  }
+
+  /* ── 第一列强调 ── */
+  tbody td:first-child {
     font-weight: 600;
+    color: var(--color-text);
+  }
+
+  /* ── 表内代码 ── */
+  td code {
+    font-size: 0.85em;
+    padding: 0.15em 0.4em;
+    background: oklch(0.65 0.18 280 / 0.08);
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── 移动端适配 ── */
+  @media (max-width: 640px) {
+    th, td {
+      padding: 0.6em 0.8em;
+      font-size: 0.85em;
+    }
+
+    th {
+      font-size: 0.78em;
+    }
   }
 
   /* ── 水平线 ── */
@@ -204,6 +401,131 @@
     color: var(--color-primary);
     font-weight: 600;
   }
+}
+
+/* ── 表格暗色模式 ── */
+.dark .prose .table-wrapper {
+  border-color: oklch(0.28 0.04 280 / 0.6);
+  box-shadow: 0 4px 24px oklch(0 0 0 / 0.4),
+              inset 0 0 0 1px oklch(1 0 0 / 0.03);
+}
+
+.dark .prose th {
+  background: linear-gradient(
+    135deg,
+    oklch(0.65 0.18 280 / 0.15) 0%,
+    oklch(0.75 0.14 350 / 0.08) 100%
+  );
+}
+
+.dark .prose thead::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    oklch(0.65 0.18 280 / 0.5),
+    oklch(0.75 0.14 350 / 0.3),
+    transparent
+  );
+}
+
+.dark .prose td {
+  border-top-color: oklch(0.28 0.04 280 / 0.4);
+}
+
+.dark .prose tbody tr:nth-child(even) {
+  background: oklch(0.65 0.18 280 / 0.04);
+}
+
+.dark .prose tbody tr:hover {
+  background: oklch(0.65 0.18 280 / 0.1);
+}
+
+/* ===================================
+   Mermaid 图表 — 赛博毛玻璃风格
+   由 MermaidRenderer.astro 注入的 DOM
+   =================================== */
+
+.mermaid-wrapper {
+  margin: 2.5em 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid oklch(0.65 0.18 280 / 0.25);
+  background: oklch(var(--color-overlay-base) / 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 24px oklch(0.65 0.18 280 / 0.08);
+  overflow: hidden;
+}
+
+.dark .mermaid-wrapper {
+  border-color: oklch(0.28 0.04 280 / 0.6);
+  box-shadow: 0 4px 24px oklch(0 0 0 / 0.4);
+}
+
+/* 图表渲染区 */
+.mermaid-chart {
+  padding: 1.5em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80px;
+  color: var(--color-text-muted);
+  font-size: 0.9em;
+  overflow-x: auto;
+}
+
+.mermaid-chart.rendered {
+  color: inherit;
+}
+
+.mermaid-chart svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 错误状态 */
+.mermaid-error {
+  color: var(--color-error);
+  font-size: 0.9em;
+  padding: 0.5em 1em;
+  background: oklch(0.65 0.20 25 / 0.08);
+  border-radius: var(--radius-sm);
+}
+
+/* 源码折叠区域 */
+.mermaid-source {
+  border-top: 1px solid oklch(0.65 0.18 280 / 0.15);
+}
+
+.dark .mermaid-source {
+  border-top-color: oklch(0.28 0.04 280 / 0.4);
+}
+
+.mermaid-source summary {
+  padding: 0.6em 1.2em;
+  font-size: 0.8em;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--duration-fast), background var(--duration-fast);
+}
+
+.mermaid-source summary:hover {
+  color: var(--color-primary);
+  background: oklch(0.65 0.18 280 / 0.05);
+}
+
+.mermaid-source pre {
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-size: 0.82em;
+  background: oklch(0.12 0.05 280 / 0.5) !important;
+}
+
+.mermaid-source pre::before,
+.mermaid-source pre::after {
+  display: none !important;
 }
 
 /* ===================================

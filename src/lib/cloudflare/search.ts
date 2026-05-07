@@ -5,10 +5,12 @@
  * 本模块仅负责搜索查询，并 re-export 同步函数以保持向后兼容。
  *
  * 搜索策略：
- *   1. FTS5 MATCH（英文/数字/标点分词效果好）
- *   2. LIKE 回退（中日韩文本 unicode61 tokenizer 无法正确分词时兜底）
+ *   1. FTS5 MATCH — 使用 jieba 分词后查询，中英文均有良好效果
+ *   2. LIKE 回退 — 原文 LIKE 匹配兜底（分词不覆盖的极端情况）
  *   两路结果合并去重后返回
  */
+
+import { segmentForSearch } from '@/lib/jieba';
 
 // Re-export FTS 同步函数（唯一实现在 d1.ts 中）
 export { syncPostToFts, syncPostToFts as syncPostToIndex } from './d1';
@@ -25,10 +27,13 @@ export async function searchPosts(db: D1Database, query: string, limit = 20): Pr
   const q = query.trim();
   if (!q) return [];
 
+  // 对搜索关键词进行中文分词
+  const segQuery = segmentForSearch(q);
+
   const seen = new Set<string>();
   const merged: SearchResult[] = [];
 
-  // ── 通道 1：FTS5 MATCH（对英文 / 可分词内容效果最好）──
+  // ── 通道 1：FTS5 MATCH（使用分词后的查询）──
   try {
     const { results: ftsResults } = await db
       .prepare(`
@@ -39,7 +44,7 @@ export async function searchPosts(db: D1Database, query: string, limit = 20): Pr
         ORDER BY rank
         LIMIT ?
       `)
-      .bind(q, limit)
+      .bind(segQuery, limit)
       .all<SearchResult>();
 
     for (const r of ftsResults ?? []) {
@@ -52,7 +57,7 @@ export async function searchPosts(db: D1Database, query: string, limit = 20): Pr
     // FTS5 表可能不存在或查询语法不兼容，静默继续
   }
 
-  // ── 通道 2：LIKE 回退（CJK 中文关键词兜底）──
+  // ── 通道 2：LIKE 回退（使用原始查询，确保原文匹配兜底）──
   if (merged.length < limit) {
     const likePattern = `%${q}%`;
     const remaining = limit - merged.length;

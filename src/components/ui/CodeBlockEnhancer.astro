@@ -20,8 +20,11 @@
   if (!blocks.length) return;
 
   blocks.forEach(function(block) {
-    // 语法高亮（防重复）
+    // 跳过 mermaid 代码块（由 MermaidRenderer 处理）
     var codeEl = block.querySelector('code');
+    if (codeEl && codeEl.className && codeEl.className.indexOf('language-mermaid') !== -1) return;
+
+    // 语法高亮（防重复）
     if (window.hljs && codeEl && !codeEl.dataset.highlighted) {
       window.hljs.highlightElement(codeEl);
     }

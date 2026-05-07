@@ -17,6 +17,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeStringify from 'rehype-stringify';
 import remarkDirective from 'remark-directive';
 import { remarkCallouts } from './remark-callouts.mjs';
+import { rehypeTableWrapper } from './rehype-table-wrapper';
 
 /**
  * 自定义 sanitize schema：在默认安全规则上放宽一些限制
@@ -61,6 +62,7 @@ function getProcessor() {
       .use(remarkCallouts)
       .use(remarkRehype, { allowDangerousHtml: true })
       .use(rehypeRaw)
+      .use(rehypeTableWrapper)
       .use(rehypeSanitize, sanitizeSchema)
       .use(rehypeStringify);
   }
