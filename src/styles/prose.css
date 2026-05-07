@@ -647,8 +647,9 @@
 }
 
 /* ===================================
-   Image Lightbox — 图片灯箱
+   Image Lightbox — 通用灯箱
    由 ImageLightbox.astro 控制
+   支持图片、Mermaid SVG 放大
    =================================== */
 
 .lightbox-overlay {
@@ -688,7 +689,68 @@
   transform: scale(1);
 }
 
+/* SVG/HTML 内容灯箱 */
+#lightbox-html {
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow: auto;
+  transform: scale(0.9);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  background: oklch(0.98 0.005 280 / 0.95);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 20px 60px oklch(0 0 0 / 0.5);
+}
+
+.dark #lightbox-html {
+  background: oklch(0.15 0.03 280 / 0.95);
+}
+
+.lightbox-overlay.active #lightbox-html {
+  transform: scale(1);
+}
+
+#lightbox-html svg {
+  max-width: 100%;
+  height: auto;
+}
+
 /* prose 内的图片增加 zoom-in 光标提示 */
 .prose img {
   cursor: zoom-in;
 }
+
+/* Mermaid 图表双击放大提示 */
+.mermaid-chart.rendered {
+  cursor: zoom-in;
+}
+
+/* ===================================
+   KaTeX 数学公式排版增强
+   =================================== */
+
+/* 块级公式居中 + 间距 */
+.prose .katex-display {
+  margin: 1.5em 0;
+  padding: 0.5em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* 行内公式微调 */
+.prose .katex {
+  font-size: 1.05em;
+}
+
+/* 块级公式自定义滚动条（宽公式） */
+.prose .katex-display::-webkit-scrollbar {
+  height: 4px;
+}
+.prose .katex-display::-webkit-scrollbar-track {
+  background: transparent;
+}
+.prose .katex-display::-webkit-scrollbar-thumb {
+  background: oklch(0.65 0.18 280 / 0.3);
+  border-radius: var(--radius-full);
+}
+

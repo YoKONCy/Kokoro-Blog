@@ -1,0 +1,55 @@
+---
+/**
+ * KaTeX 数学公式渲染器
+ *
+ * 在客户端使用 KaTeX auto-render 将 LaTeX 公式渲染为数学排版。
+ * 支持以下语法：
+ *   - 行内公式：$E = mc^2$ 或 \(E = mc^2\)
+ *   - 块级公式：$$...$$  或 \[...\]
+ *
+ * 通过 CDN 加载 KaTeX，避免打包体积膨胀。
+ * 样式见 src/styles/prose.css 中的 .katex 部分。
+ */
+---
+
+<!-- KaTeX CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" crossorigin="anonymous" />
+
+<script is:inline data-astro-rerun>
+(function() {
+  // 仅在有 .prose 内容时加载
+  var prose = document.querySelector('.prose');
+  if (!prose) return;
+
+  // 快速检测是否存在可能的 LaTeX 公式（避免不必要的加载）
+  var text = prose.textContent || '';
+  var hasMath = /\$[\s\S]+?\$|\\[\(\[]/.test(text);
+  if (!hasMath) return;
+
+  // 动态加载 KaTeX + auto-render
+  var script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js';
+  script.crossOrigin = 'anonymous';
+  script.onload = function() {
+    var autoScript = document.createElement('script');
+    autoScript.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js';
+    autoScript.crossOrigin = 'anonymous';
+    autoScript.onload = function() {
+      if (window.renderMathInElement) {
+        window.renderMathInElement(prose, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true },
+          ],
+          throwOnError: false,
+          trust: true,
+        });
+      }
+    };
+    document.head.appendChild(autoScript);
+  };
+  document.head.appendChild(script);
+})();
+</script>
